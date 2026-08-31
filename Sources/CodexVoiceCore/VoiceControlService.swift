@@ -15,20 +15,27 @@ public final class VoiceControlService {
   private let authorizationToken: String
   private let audio: VoiceAudioCoordinator
   private let pendingResponseCount: () -> Int
+  private let availableVoices: () -> [VoiceControlVoice]
   private var lastSequenceByClientID: [String: UInt64] = [:]
 
   public init(
     authorizationToken: String,
     audio: VoiceAudioCoordinator,
-    pendingResponseCount: @escaping () -> Int = { 0 }
+    pendingResponseCount: @escaping () -> Int = { 0 },
+    availableVoices: @escaping () -> [VoiceControlVoice] = { [] }
   ) {
     self.authorizationToken = authorizationToken
     self.audio = audio
     self.pendingResponseCount = pendingResponseCount
+    self.availableVoices = availableVoices
   }
 
   public var state: VoiceControlState {
-    VoiceControlState(audio: audio.snapshot, pendingResponseCount: pendingResponseCount())
+    VoiceControlState(
+      audio: audio.snapshot,
+      pendingResponseCount: pendingResponseCount(),
+      availableVoices: availableVoices()
+    )
   }
 
   public func stateChangedMessage() -> VoiceControlMessage {
@@ -110,6 +117,28 @@ public final class VoiceControlService {
       let previous = audio.settings.volume
       audio.setVolume(Float(volume))
       actionPerformed = previous != audio.settings.volume
+    case .setRate:
+      guard let rate = request.command.numberValue, rate.isFinite, (0.1...1).contains(rate)
+      else {
+        return invalidPayload(request, expected: "numberValue entre 0,1 et 1")
+      }
+      let previous = audio.settings.rate
+      audio.setRate(Float(rate))
+      actionPerformed = previous != audio.settings.rate
+    case .setVoiceIdentifier:
+      guard let rawIdentifier = request.command.stringValue,
+        rawIdentifier.utf8.count <= 512
+      else {
+        return invalidPayload(request, expected: "stringValue")
+      }
+      let identifier = rawIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard identifier.isEmpty || availableVoices().contains(where: { $0.identifier == identifier })
+      else {
+        return invalidPayload(request, expected: "identifiant d'une voix installée")
+      }
+      let previous = audio.settings.voiceIdentifier
+      audio.setVoiceIdentifier(identifier)
+      actionPerformed = previous != audio.settings.voiceIdentifier
     }
 
     lastSequenceByClientID[clientID] = request.sequence

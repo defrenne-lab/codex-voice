@@ -4,6 +4,13 @@ import Foundation
 
 @MainActor
 final class VoiceRemoteViewModel: ObservableObject {
+  struct RatePreset: Identifiable {
+    let label: String
+    let value: Double
+
+    var id: Double { value }
+  }
+
   enum ConnectionPhase: Equatable {
     case connecting
     case connected
@@ -28,6 +35,9 @@ final class VoiceRemoteViewModel: ObservableObject {
   @Published private(set) var voiceEnabled = false
   @Published private(set) var muted = false
   @Published private(set) var volume = 0.8
+  @Published private(set) var rate = 0.48
+  @Published private(set) var voiceIdentifier: String?
+  @Published private(set) var availableVoices: [VoiceControlVoice] = []
   @Published private(set) var currentAudio: VoiceControlCurrentAudio?
   @Published private(set) var queuedUnitCount = 0
   @Published private(set) var optionMonitoringAuthorized = false
@@ -42,6 +52,13 @@ final class VoiceRemoteViewModel: ObservableObject {
   private var volumeTask: Task<Void, Never>?
   private var connectionGeneration = UUID()
   private var hasStarted = false
+
+  let ratePresets = [
+    RatePreset(label: "Lente", value: 0.38),
+    RatePreset(label: "Normale", value: 0.48),
+    RatePreset(label: "Rapide", value: 0.53),
+    RatePreset(label: "Très rapide", value: 0.58),
+  ]
 
   init(configuration: VoiceRemoteConfiguration = .current()) {
     self.configuration = configuration
@@ -61,6 +78,25 @@ final class VoiceRemoteViewModel: ObservableObject {
   var canStop: Bool { connectionPhase == .connected && (currentAudio != nil || queuedUnitCount > 0) }
   var controlsEnabled: Bool { connectionPhase == .connected }
 
+  var preferredVoices: [VoiceControlVoice] {
+    ["thomas", "aurelie"].compactMap { expectedName in
+      availableVoices.first {
+        $0.language.lowercased().hasPrefix("fr-fr")
+          && normalizedVoiceName($0.name).contains(expectedName)
+      }
+    }
+  }
+
+  var selectedVoiceName: String {
+    guard let voiceIdentifier else { return "Automatique" }
+    return availableVoices.first { $0.identifier == voiceIdentifier }?.name ?? "Voix choisie"
+  }
+
+  var selectedRateName: String {
+    ratePresets.first { abs($0.value - rate) < 0.01 }?.label
+      ?? "\(Int((rate * 100).rounded())) %"
+  }
+
   var haloState: HaloState {
     guard connectionPhase == .connected else { return .disconnected }
     return voiceEnabled && !muted ? .active : .inactive
@@ -74,6 +110,19 @@ final class VoiceRemoteViewModel: ObservableObject {
       voiceEnabled = true
       muted = false
       volume = 0.8
+      rate = 0.53
+      availableVoices = [
+        VoiceControlVoice(
+          identifier: "com.apple.voice.compact.fr-FR.Thomas",
+          name: "Thomas",
+          language: "fr-FR"
+        ),
+        VoiceControlVoice(
+          identifier: "com.apple.voice.enhanced.fr-FR.Aurelie",
+          name: "Aurélie (Enhanced)",
+          language: "fr-FR"
+        ),
+      ]
       currentAudio = VoiceControlCurrentAudio(
         unit: VoiceAudioUnit(
           id: "preview-item",
@@ -112,6 +161,20 @@ final class VoiceRemoteViewModel: ObservableObject {
       guard !Task.isCancelled else { return }
       self?.perform(.setVolume(requestedVolume))
     }
+  }
+
+  func setRate(_ newValue: Double) {
+    guard controlsEnabled else { return }
+    rate = min(1, max(0.1, newValue))
+    if configuration.isPreview { return }
+    perform(.setRate(rate))
+  }
+
+  func setVoiceIdentifier(_ identifier: String?) {
+    guard controlsEnabled else { return }
+    voiceIdentifier = identifier
+    if configuration.isPreview { return }
+    perform(.setVoiceIdentifier(identifier))
   }
 
   func interruptAudio() {
@@ -199,8 +262,16 @@ final class VoiceRemoteViewModel: ObservableObject {
     voiceEnabled = state.voiceEnabled
     muted = state.muted
     volume = Double(state.volume)
+    rate = Double(state.rate)
+    voiceIdentifier = state.voiceIdentifier
+    if let voices = state.availableVoices { availableVoices = voices }
     currentAudio = state.currentAudio
     queuedUnitCount = state.queuedUnitCount
+  }
+
+  private func normalizedVoiceName(_ value: String) -> String {
+    value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+      .lowercased()
   }
 
   private func perform(_ command: VoiceControlCommand) {

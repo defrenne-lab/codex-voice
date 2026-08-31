@@ -27,7 +27,19 @@ swift build -c release --product codex-voice-local
 /usr/bin/plutil -lint "${PLIST_PATH}"
 
 /bin/launchctl bootout "gui/${USER_ID}/${SERVICE_LABEL}" >/dev/null 2>&1 || true
-/bin/launchctl bootstrap "gui/${USER_ID}" "${PLIST_PATH}"
+bootstrap_succeeded=false
+for attempt in 1 2 3 4 5; do
+  if /bin/launchctl bootstrap "gui/${USER_ID}" "${PLIST_PATH}" >/dev/null 2>&1; then
+    bootstrap_succeeded=true
+    break
+  fi
+  /bin/sleep 0.5
+done
+if [[ "${bootstrap_succeeded}" != true ]]; then
+  /bin/launchctl bootstrap "gui/${USER_ID}" "${PLIST_PATH}" || true
+  print -u2 "Impossible d'activer ${SERVICE_LABEL} après cinq tentatives."
+  exit 1
+fi
 /bin/launchctl kickstart -k "gui/${USER_ID}/${SERVICE_LABEL}"
 
 print "Service installé : ${SERVICE_LABEL}"

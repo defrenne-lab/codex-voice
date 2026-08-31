@@ -13,21 +13,26 @@ public enum VoiceControlCommandKind: String, Codable, Sendable {
   case setVoiceEnabled
   case setMuted
   case setVolume
+  case setRate
+  case setVoiceIdentifier
 }
 
 public struct VoiceControlCommand: Codable, Equatable, Sendable {
   public let kind: VoiceControlCommandKind
   public let booleanValue: Bool?
   public let numberValue: Double?
+  public let stringValue: String?
 
   public init(
     kind: VoiceControlCommandKind,
     booleanValue: Bool? = nil,
-    numberValue: Double? = nil
+    numberValue: Double? = nil,
+    stringValue: String? = nil
   ) {
     self.kind = kind
     self.booleanValue = booleanValue
     self.numberValue = numberValue
+    self.stringValue = stringValue
   }
 
   public static let getState = VoiceControlCommand(kind: .getState)
@@ -43,6 +48,14 @@ public struct VoiceControlCommand: Codable, Equatable, Sendable {
 
   public static func setVolume(_ volume: Double) -> VoiceControlCommand {
     VoiceControlCommand(kind: .setVolume, numberValue: volume)
+  }
+
+  public static func setRate(_ rate: Double) -> VoiceControlCommand {
+    VoiceControlCommand(kind: .setRate, numberValue: rate)
+  }
+
+  public static func setVoiceIdentifier(_ identifier: String?) -> VoiceControlCommand {
+    VoiceControlCommand(kind: .setVoiceIdentifier, stringValue: identifier ?? "")
   }
 }
 
@@ -84,25 +97,42 @@ public struct VoiceControlCurrentAudio: Codable, Equatable, Sendable {
   }
 }
 
+public struct VoiceControlVoice: Codable, Equatable, Identifiable, Sendable {
+  public let identifier: String
+  public let name: String
+  public let language: String
+
+  public var id: String { identifier }
+
+  public init(identifier: String, name: String, language: String) {
+    self.identifier = identifier
+    self.name = name
+    self.language = language
+  }
+}
+
 public struct VoiceControlState: Codable, Equatable, Sendable {
   public let voiceEnabled: Bool
   public let muted: Bool
   public let volume: Float
   public let rate: Float
   public let voiceIdentifier: String?
+  public let availableVoices: [VoiceControlVoice]?
   public let currentAudio: VoiceControlCurrentAudio?
   public let queuedUnitCount: Int
   public let pendingResponseCount: Int
 
   public init(
     audio: VoiceAudioSnapshot,
-    pendingResponseCount: Int
+    pendingResponseCount: Int,
+    availableVoices: [VoiceControlVoice] = []
   ) {
     voiceEnabled = audio.settings.isEnabled
     muted = audio.settings.isMuted
     volume = audio.settings.volume
     rate = audio.settings.rate
     voiceIdentifier = audio.settings.voiceIdentifier
+    self.availableVoices = availableVoices
     currentAudio = audio.currentUnit.map(VoiceControlCurrentAudio.init)
     queuedUnitCount = audio.queuedUnitCount
     self.pendingResponseCount = max(0, pendingResponseCount)

@@ -25,6 +25,7 @@ V3 is a clean Swift rewrite shaped by several months of daily use. Its product r
 - Native macOS menu-bar controller with a compact blue halo.
 - Global, passive Option-key observation for immediate remote interruption.
 - Voice on/off, app-level volume and stop controls.
+- Remote selection of the installed Thomas or Aurélie voice and the four proven V2 speeds.
 - Live authenticated state over a persistent WebSocket connection.
 - Localhost-only control service designed to travel through an SSH tunnel.
 - macOS `AVSpeechSynthesizer` output on the Mac that runs Codex.
@@ -104,7 +105,7 @@ Scripts/build-remote-app.sh
 Scripts/package-remote-app.sh
 ```
 
-The package script creates `.build/Codex-Voice-3-macOS.zip` and a matching SHA-256 file. The project currently has 41 automated tests around ingestion, ordering, orchestration, audio coordination, authentication, deduplication and token permissions.
+The package script creates `.build/Codex-Voice-3-macOS.zip` and a matching SHA-256 file. The project currently has 42 automated tests around ingestion, ordering, orchestration, audio coordination, authentication, remote settings, deduplication and token permissions.
 
 ## Security model
 

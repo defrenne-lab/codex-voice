@@ -59,6 +59,19 @@ private struct RemoteOptions {
           throw RemoteCLIError.invalidValue("volume")
         }
         try setCommand(.setVolume(value))
+      case "rate":
+        index += 1
+        guard index < arguments.count, let value = Double(arguments[index]),
+          (0.1...1).contains(value)
+        else {
+          throw RemoteCLIError.invalidValue("rate")
+        }
+        try setCommand(.setRate(value))
+      case "voice":
+        index += 1
+        guard index < arguments.count else { throw RemoteCLIError.invalidValue("voice") }
+        let value = arguments[index]
+        try setCommand(.setVoiceIdentifier(value == "automatic" ? nil : value))
       default:
         throw RemoteCLIError.unknownArgument(argument)
       }
@@ -80,6 +93,8 @@ private struct RemoteOptions {
       enable | disable         Active ou désactive durablement la voix
       mute | unmute            Active ou retire la sourdine
       volume 0...1             Règle le volume applicatif
+      rate 0.1...1             Règle la vitesse de lecture
+      voice ID | automatic     Sélectionne une voix installée ou le choix système
 
     Options:
       --url URL                WebSocket local (défaut: ws://127.0.0.1:48731/control)
@@ -126,6 +141,8 @@ private func printHumanReadable(_ message: VoiceControlMessage) {
   print(
     "Voix active : \(state.voiceEnabled), muette : \(state.muted), volume : \(state.volume), vitesse : \(state.rate)"
   )
+  let selectedVoice = state.availableVoices?.first { $0.identifier == state.voiceIdentifier }
+  print("Voix : \(selectedVoice?.name ?? "Automatique")")
   if let current = state.currentAudio {
     print(
       "Lecture : \(current.threadTitle ?? current.threadID) [\(current.kind)], file : \(state.queuedUnitCount)"

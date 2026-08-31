@@ -47,9 +47,11 @@ Le démarrage à la fin ne reparcourt plus l'intégralité des gros historiques.
 
 ## Validation
 
-La suite compte maintenant 40 tests, dont 8 scénarios spécifiques au coordinateur audio et 11 scénarios d'ingestion. Elle couvre la file non préemptive, l'interruption atomique, la désactivation, la sourdine, la persistance abstraite des réglages, la déduplication, les callbacks tardifs, le démarrage à la fin d'un transcript volumineux et le remplacement sûr d'un journal déjà suivi.
+La suite compte maintenant 42 tests, dont 8 scénarios spécifiques au coordinateur audio et 11 scénarios d'ingestion. Elle couvre la file non préemptive, l'interruption atomique, la désactivation, la sourdine, la persistance abstraite des réglages, la déduplication, les callbacks tardifs, le démarrage à la fin d'un transcript volumineux et le remplacement sûr d'un journal déjà suivi.
 
 Le pilote macOS réel a été chargé et a correctement découvert les voix françaises installées. Aucun son n'a été produit pendant cette validation : le chemin de lecture réelle reste à essayer volontairement une fois le contrôle d'interruption disponible.
+
+La validation réelle a ensuite révélé des microcoupures précisément corrélées à des erreurs Core Audio `skipping cycle due to overload`. Le moteur était identique à celui de la V2, mais son LaunchAgent V3 avait été classé `Background`. La classification est désormais `Interactive`, ce qui correspond à la contrainte de réactivité de la lecture et évite la limitation de ressources appliquée aux tâches d'arrière-plan.
 
 ## Prochaine brique
 

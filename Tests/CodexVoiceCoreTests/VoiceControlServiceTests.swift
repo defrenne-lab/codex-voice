@@ -15,6 +15,15 @@ final class VoiceControlServiceTests: XCTestCase {
 
     let data = try JSONEncoder().encode(request)
     XCTAssertEqual(try JSONDecoder().decode(VoiceControlRequest.self, from: data), request)
+
+    let voiceRequest = VoiceControlRequest(
+      clientID: "macbook",
+      sequence: 43,
+      authorization: token,
+      command: .setVoiceIdentifier(testVoices[1].identifier)
+    )
+    let voiceData = try JSONEncoder().encode(voiceRequest)
+    XCTAssertEqual(try JSONDecoder().decode(VoiceControlRequest.self, from: voiceData), voiceRequest)
   }
 
   func testUnauthorizedRequestNeverExposesState() {
@@ -36,13 +45,34 @@ final class VoiceControlServiceTests: XCTestCase {
       request(sequence: 1, command: .setVoiceEnabled(true))
     )
     let volume = fixture.service.handle(request(sequence: 2, command: .setVolume(0.35)))
-    let muted = fixture.service.handle(request(sequence: 3, command: .setMuted(true)))
+    let rate = fixture.service.handle(request(sequence: 3, command: .setRate(0.53)))
+    let voice = fixture.service.handle(
+      request(sequence: 4, command: .setVoiceIdentifier(testVoices[1].identifier))
+    )
+    let muted = fixture.service.handle(request(sequence: 5, command: .setMuted(true)))
 
     XCTAssertEqual(enabled.message.status, .ok)
     XCTAssertEqual(volume.message.state?.volume, 0.35)
+    XCTAssertEqual(rate.message.state?.rate, 0.53)
+    XCTAssertEqual(voice.message.state?.voiceIdentifier, testVoices[1].identifier)
     XCTAssertEqual(muted.message.state?.voiceEnabled, true)
     XCTAssertEqual(muted.message.state?.muted, true)
     XCTAssertEqual(muted.message.state?.pendingResponseCount, 3)
+    XCTAssertEqual(muted.message.state?.availableVoices, testVoices)
+  }
+
+  func testRateAndVoiceCommandsRejectInvalidValues() {
+    let fixture = makeFixture()
+
+    let rate = fixture.service.handle(request(sequence: 1, command: .setRate(1.5)))
+    let voice = fixture.service.handle(
+      request(sequence: 2, command: .setVoiceIdentifier("missing-voice"))
+    )
+
+    XCTAssertEqual(rate.message.status, .rejected)
+    XCTAssertEqual(voice.message.status, .rejected)
+    XCTAssertEqual(fixture.coordinator.settings.rate, 0.48)
+    XCTAssertNil(fixture.coordinator.settings.voiceIdentifier)
   }
 
   func testOlderSequenceIsAbsorbedWithoutApplyingCommand() {
@@ -100,12 +130,25 @@ private func makeFixture(
   let service = VoiceControlService(
     authorizationToken: token,
     audio: coordinator,
-    pendingResponseCount: { pendingResponseCount }
+    pendingResponseCount: { pendingResponseCount },
+    availableVoices: { testVoices }
   )
   return (service, coordinator, driver)
 }
 
 private let token = String(repeating: "a", count: 64)
+private let testVoices = [
+  VoiceControlVoice(
+    identifier: "com.apple.voice.compact.fr-FR.Thomas",
+    name: "Thomas",
+    language: "fr-FR"
+  ),
+  VoiceControlVoice(
+    identifier: "com.apple.voice.enhanced.fr-FR.Aurelie",
+    name: "Aurélie (Enhanced)",
+    language: "fr-FR"
+  ),
+]
 
 private func request(
   sequence: UInt64,

@@ -191,10 +191,14 @@ func runLocal() async throws {
   let controlServer: VoiceControlWebSocketServer?
   if options.controlServerEnabled {
     let token = try VoiceControlTokenStore.loadOrCreate(at: options.controlTokenFile)
+    let installedVoices = MacOSSpeechDriver.availableFrenchVoices().map {
+      VoiceControlVoice(identifier: $0.identifier, name: $0.name, language: $0.language)
+    }
     let service = VoiceControlService(
       authorizationToken: token,
       audio: audio,
-      pendingResponseCount: { orchestrator.snapshot.pendingResponses.count }
+      pendingResponseCount: { orchestrator.snapshot.pendingResponses.count },
+      availableVoices: { installedVoices }
     )
     let server = VoiceControlWebSocketServer(service: service)
     server.eventHandler = { event in

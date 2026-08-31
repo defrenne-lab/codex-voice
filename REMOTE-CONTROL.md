@@ -4,7 +4,7 @@ Date de validation : 31 août 2026
 
 ## Résultat
 
-Le Mac mini expose maintenant un serveur WebSocket de contrôle vocal lié exclusivement à `127.0.0.1`. Un client macOS séparé, `codex-voice-remote`, sait consulter l'état et envoyer les commandes `interrupt`, `enable`, `disable`, `mute`, `unmute` et `volume`.
+Le Mac mini expose maintenant un serveur WebSocket de contrôle vocal lié exclusivement à `127.0.0.1`. Un client macOS séparé, `codex-voice-remote`, sait consulter l'état et envoyer les commandes `interrupt`, `enable`, `disable`, `mute`, `unmute`, `volume`, `rate` et `voice`.
 
 Le transport est destiné à traverser un tunnel SSH depuis le MacBook. Aucun port Codex Voice n'est publié sur le Wi-Fi et l'App Server de Codex n'est jamais exposé.
 
@@ -31,6 +31,7 @@ Une réponse authentifiée contient uniquement :
 - identifiants et titre de la tâche actuellement lue ;
 - type de lecture ;
 - nombre de réponses parallèles en attente.
+- catalogue des voix françaises installées, sans aucune donnée de transcript.
 
 Le texte lu n'est jamais envoyé au contrôleur. Une connexion non authentifiée ne reçoit aucun état, même lorsqu'elle emploie une requête JSON valide.
 
@@ -74,6 +75,8 @@ Le client parle alors à son propre localhost :
 codex-voice-remote state
 codex-voice-remote interrupt
 codex-voice-remote volume 0.45
+codex-voice-remote rate 0.53
+codex-voice-remote voice com.apple.voice.enhanced.fr-FR.Aurelie
 codex-voice-remote mute
 codex-voice-remote disable
 ```
@@ -82,7 +85,7 @@ Par sécurité, le client refuse une URL `ws://` qui ne vise pas `localhost`. Un
 
 ## Validation
 
-La suite compte 40 tests, dont 6 scénarios du service de contrôle et 2 scénarios du magasin de jeton. Elle vérifie l'authentification, l'absence de texte dans l'état, la mutation des réglages, l'interruption de toute la file, la déduplication des séquences et les permissions privées du jeton.
+La suite compte 42 tests, dont 7 scénarios du service de contrôle et 3 scénarios du magasin de jeton. Elle vérifie l'authentification, l'absence de texte dans l'état, la mutation des réglages, l'interruption de toute la file, la déduplication des séquences et les permissions privées du jeton.
 
 Le vrai serveur Network.framework et le vrai client URLSession ont également été exécutés ensemble sur `127.0.0.1` :
 
@@ -103,6 +106,8 @@ La voix est restée désactivée pendant toute la validation et le volume a ét�
 - état de connexion et conversation actuellement lue ;
 - activation globale de la voix ;
 - volume applicatif ;
+- choix compact entre Thomas et Aurélie lorsque ces voix sont installées ;
+- vitesse lente, normale, rapide ou très rapide selon les valeurs éprouvées dans la V2 ;
 - interruption immédiate de toute la file audio ;
 - observation passive de la touche Option, sans empêcher Codex de recevoir le même événement.
 
@@ -133,6 +138,8 @@ Scripts/install-local-service.sh
 ```
 
 Le script place un binaire stable dans `~/Library/Application Support/Codex Voice 3/bin`, installe `lab.defrenne.codexvoice3.local.plist` et conserve les journaux dans le même dossier d'application. Il ne force pas l'activation de la voix : une installation neuve reste désactivée et les réglages explicites sont ensuite persistés.
+
+Le LaunchAgent est classé `Interactive`. Une première exécution en `Background` a provoqué des cycles Core Audio sautés sous charge ; la lecture vocale exige ici la même réactivité qu'une application interactive. L'installateur tolère également le court délai asynchrone avec lequel `launchctl` retire parfois l'ancienne instance pendant une mise à jour.
 
 ## Paquet destiné au MacBook
 

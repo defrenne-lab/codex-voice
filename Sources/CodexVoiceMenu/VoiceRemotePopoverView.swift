@@ -11,6 +11,8 @@ struct VoiceRemotePopoverView: View {
       Divider()
       voiceSection
       Divider()
+      speechSettingsSection
+      Divider()
       volumeSection
       Divider()
       stopSection
@@ -116,6 +118,81 @@ struct VoiceRemotePopoverView: View {
     }
     .padding(.horizontal, 18)
     .padding(.vertical, 15)
+  }
+
+  private var speechSettingsSection: some View {
+    VStack(spacing: 0) {
+      Menu {
+        Button(action: { model.setVoiceIdentifier(nil) }) {
+          if model.voiceIdentifier == nil {
+            Label("Automatique", systemImage: "checkmark")
+          } else {
+            Text("Automatique")
+          }
+        }
+        ForEach(model.preferredVoices) { voice in
+          Button(action: { model.setVoiceIdentifier(voice.identifier) }) {
+            if model.voiceIdentifier == voice.identifier {
+              Label(voice.name, systemImage: "checkmark")
+            } else {
+              Text(voice.name)
+            }
+          }
+        }
+      } label: {
+        settingMenuLabel(
+          icon: "quote.bubble.fill",
+          title: "Voix",
+          value: model.selectedVoiceName
+        )
+      }
+      .menuStyle(.borderlessButton)
+      .disabled(!model.controlsEnabled || model.preferredVoices.isEmpty)
+
+      Divider().padding(.leading, 54)
+
+      Menu {
+        ForEach(model.ratePresets) { preset in
+          Button(action: { model.setRate(preset.value) }) {
+            if abs(model.rate - preset.value) < 0.01 {
+              Label(preset.label, systemImage: "checkmark")
+            } else {
+              Text(preset.label)
+            }
+          }
+        }
+      } label: {
+        settingMenuLabel(
+          icon: "speedometer",
+          title: "Vitesse",
+          value: model.selectedRateName
+        )
+      }
+      .menuStyle(.borderlessButton)
+      .disabled(!model.controlsEnabled)
+    }
+  }
+
+  private func settingMenuLabel(icon: String, title: String, value: String) -> some View {
+    HStack(spacing: 12) {
+      Image(systemName: icon)
+        .font(.system(size: 16, weight: .medium))
+        .foregroundStyle(.secondary)
+        .frame(width: 24)
+      Text(title)
+        .font(.system(size: 14, weight: .medium))
+      Spacer(minLength: 8)
+      Text(value)
+        .font(.system(size: 13))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+      Image(systemName: "chevron.up.chevron.down")
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(.tertiary)
+    }
+    .contentShape(Rectangle())
+    .padding(.horizontal, 18)
+    .padding(.vertical, 12)
   }
 
   private var stopSection: some View {
