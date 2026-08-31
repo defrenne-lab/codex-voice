@@ -44,6 +44,7 @@ final class VoiceRemoteViewModel: ObservableObject {
   @Published private(set) var lastError: String?
 
   let configuration: VoiceRemoteConfiguration
+  var optionPressedHandler: (() -> Void)?
 
   private let optionMonitor = GlobalOptionMonitor()
   private var connection: PersistentVoiceControlWebSocketClient?
@@ -139,7 +140,10 @@ final class VoiceRemoteViewModel: ObservableObject {
       return
     }
     optionMonitoringAuthorized = optionMonitor.isAuthorized
-    optionMonitor.start { [weak self] in self?.interruptAudio() }
+    optionMonitor.start { [weak self] in
+      self?.interruptAudio()
+      self?.optionPressedHandler?()
+    }
     connect()
   }
 

@@ -19,6 +19,7 @@ private final class VoiceRemoteStatusItemController: NSObject {
 
   private var statusItem: NSStatusItem?
   private var popover: NSPopover?
+  private var previouslyActiveApplication: NSRunningApplication?
   private var cancellables: Set<AnyCancellable> = []
 
   func install(model: VoiceRemoteViewModel) {
@@ -48,6 +49,7 @@ private final class VoiceRemoteStatusItemController: NSObject {
 
     self.statusItem = statusItem
     self.popover = popover
+    model.optionPressedHandler = { [weak self] in self?.dismissForPushToTalk() }
     updateIcon(model.haloState)
 
     Publishers.CombineLatest3(
@@ -105,8 +107,24 @@ private final class VoiceRemoteStatusItemController: NSObject {
 
   private func showPopover(relativeTo button: NSStatusBarButton) {
     guard let popover else { return }
+    let currentApplication = NSWorkspace.shared.frontmostApplication
+    if currentApplication?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
+      previouslyActiveApplication = currentApplication
+    }
     popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-    popover.contentViewController?.view.window?.makeKey()
+  }
+
+  private func dismissForPushToTalk() {
+    if popover?.isShown == true { popover?.performClose(nil) }
+    DispatchQueue.main.async { [weak self] in
+      self?.restorePreviousApplicationIfNeeded()
+    }
+  }
+
+  private func restorePreviousApplicationIfNeeded() {
+    defer { previouslyActiveApplication = nil }
+    guard NSApp.isActive, let previouslyActiveApplication else { return }
+    previouslyActiveApplication.activate(options: [.activateIgnoringOtherApps])
   }
 
   private func updateIcon(_ state: VoiceRemoteViewModel.HaloState) {
@@ -138,13 +156,13 @@ struct CodexVoiceMenuApp: App {
     let model = VoiceRemoteViewModel()
     _model = StateObject(wrappedValue: model)
     CodexVoiceAppDelegate.launchHandler = {
-      model.start()
       VoiceRemoteStatusItemController.shared.install(model: model)
+      model.start()
     }
     Task { @MainActor in
       try? await Task.sleep(nanoseconds: 500_000_000)
-      model.start()
       VoiceRemoteStatusItemController.shared.install(model: model)
+      model.start()
     }
   }
 
