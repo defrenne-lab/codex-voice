@@ -1,0 +1,154 @@
+import AppKit
+import Combine
+import SwiftUI
+
+@MainActor
+final class CodexVoiceAppDelegate: NSObject, NSApplicationDelegate {
+  static var launchHandler: (() -> Void)?
+
+  func applicationDidFinishLaunching(_ notification: Notification) {
+    NSApplication.shared.setActivationPolicy(.accessory)
+    Self.launchHandler?()
+    Self.launchHandler = nil
+  }
+}
+
+@MainActor
+private final class VoiceRemoteStatusItemController: NSObject {
+  static let shared = VoiceRemoteStatusItemController()
+
+  private var statusItem: NSStatusItem?
+  private var popover: NSPopover?
+  private var cancellables: Set<AnyCancellable> = []
+
+  func install(model: VoiceRemoteViewModel) {
+    guard statusItem == nil else { return }
+
+    let statusItem = NSStatusBar.system.statusItem(withLength: 28)
+    guard let button = statusItem.button else { return }
+    button.target = self
+    button.action = #selector(togglePopover)
+    button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+    button.imagePosition = .imageOnly
+    button.imageScaling = .scaleProportionallyDown
+
+    let hostingController = NSHostingController(
+      rootView: VoiceRemotePopoverView(model: model)
+        .tint(Color(red: 0.12, green: 0.48, blue: 1))
+    )
+    hostingController.view.frame.size.width = 340
+    hostingController.view.layoutSubtreeIfNeeded()
+
+    let popover = NSPopover()
+    popover.behavior = .transient
+    popover.animates = true
+    popover.contentViewController = hostingController
+    let fittingSize = hostingController.view.fittingSize
+    popover.contentSize = NSSize(width: 340, height: max(1, fittingSize.height))
+
+    self.statusItem = statusItem
+    self.popover = popover
+    updateIcon(model.haloState)
+
+    Publishers.CombineLatest3(
+      model.$connectionPhase,
+      model.$voiceEnabled,
+      model.$muted
+    )
+    .receive(on: RunLoop.main)
+    .sink { [weak self, weak model] _, _, _ in
+      guard let model else { return }
+      self?.updateIcon(model.haloState)
+    }
+    .store(in: &cancellables)
+
+    if model.configuration.isPreview {
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+        self?.showPopover()
+      }
+    }
+  }
+
+  @objc private func togglePopover() {
+    guard let button = statusItem?.button, let popover else { return }
+    if let event = NSApplication.shared.currentEvent, event.type == .rightMouseUp {
+      showContextMenu(for: button, event: event)
+      return
+    }
+    if popover.isShown {
+      popover.performClose(nil)
+    } else {
+      showPopover(relativeTo: button)
+    }
+  }
+
+  private func showContextMenu(for button: NSStatusBarButton, event: NSEvent) {
+    let menu = NSMenu()
+    let quitItem = NSMenuItem(
+      title: "Quitter Codex Voice 3",
+      action: #selector(quitApplication),
+      keyEquivalent: "q"
+    )
+    quitItem.target = self
+    menu.addItem(quitItem)
+    NSMenu.popUpContextMenu(menu, with: event, for: button)
+  }
+
+  @objc private func quitApplication() {
+    NSApplication.shared.terminate(nil)
+  }
+
+  private func showPopover() {
+    guard let button = statusItem?.button, popover?.isShown == false else { return }
+    showPopover(relativeTo: button)
+  }
+
+  private func showPopover(relativeTo button: NSStatusBarButton) {
+    guard let popover else { return }
+    popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+    popover.contentViewController?.view.window?.makeKey()
+  }
+
+  private func updateIcon(_ state: VoiceRemoteViewModel.HaloState) {
+    guard let button = statusItem?.button else { return }
+    let renderer = ImageRenderer(content: VoiceHaloIcon(state: state))
+    renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
+    guard let image = renderer.nsImage else { return }
+    image.size = NSSize(width: 26, height: 20)
+    image.isTemplate = false
+    button.image = image
+    switch state {
+    case .active:
+      button.toolTip = "Codex Voice 3 — voix active"
+    case .inactive:
+      button.toolTip = "Codex Voice 3 — voix silencieuse"
+    case .disconnected:
+      button.toolTip = "Codex Voice 3 — hors ligne"
+    }
+  }
+}
+
+@main
+@MainActor
+struct CodexVoiceMenuApp: App {
+  @NSApplicationDelegateAdaptor(CodexVoiceAppDelegate.self) private var appDelegate
+  @StateObject private var model: VoiceRemoteViewModel
+
+  init() {
+    let model = VoiceRemoteViewModel()
+    _model = StateObject(wrappedValue: model)
+    CodexVoiceAppDelegate.launchHandler = {
+      model.start()
+      VoiceRemoteStatusItemController.shared.install(model: model)
+    }
+    Task { @MainActor in
+      try? await Task.sleep(nanoseconds: 500_000_000)
+      model.start()
+      VoiceRemoteStatusItemController.shared.install(model: model)
+    }
+  }
+
+  var body: some Scene {
+    Settings { EmptyView() }
+  }
+}

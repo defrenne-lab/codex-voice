@@ -1,0 +1,55 @@
+import CodexVoiceCore
+import CodexVoiceMacOS
+import Foundation
+
+struct VoiceRemoteConfiguration {
+  let url: URL
+  let tokenFile: URL
+  let deviceName: String
+  let clientID: String
+  let isPreview: Bool
+
+  static func current(
+    arguments: [String] = CommandLine.arguments,
+    environment: [String: String] = ProcessInfo.processInfo.environment
+  ) -> VoiceRemoteConfiguration {
+    var url = URL(
+      string: environment["CODEX_VOICE_REMOTE_URL"]
+        ?? "ws://127.0.0.1:\(VoiceControlProtocol.defaultPort)/control"
+    )!
+    var tokenFile = environment["CODEX_VOICE_TOKEN_FILE"].map {
+      URL(fileURLWithPath: $0).standardizedFileURL
+    } ?? VoiceControlTokenStore.defaultURL
+    var deviceName = environment["CODEX_VOICE_DEVICE_NAME"] ?? "Mac mini"
+    var isPreview = false
+
+    var index = 1
+    while index < arguments.count {
+      switch arguments[index] {
+      case "--url" where index + 1 < arguments.count:
+        if let value = URL(string: arguments[index + 1]) { url = value }
+        index += 1
+      case "--token-file" where index + 1 < arguments.count:
+        tokenFile = URL(fileURLWithPath: arguments[index + 1]).standardizedFileURL
+        index += 1
+      case "--device-name" where index + 1 < arguments.count:
+        deviceName = arguments[index + 1]
+        index += 1
+      case "--preview":
+        isPreview = true
+      default:
+        break
+      }
+      index += 1
+    }
+
+    let computerName = Host.current().localizedName ?? "macbook"
+    return VoiceRemoteConfiguration(
+      url: url,
+      tokenFile: tokenFile,
+      deviceName: deviceName,
+      clientID: "\(computerName).codex-voice-menu",
+      isPreview: isPreview
+    )
+  }
+}

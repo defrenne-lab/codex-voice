@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>lab.defrenne.codexvoice3.local</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__CODEX_VOICE_LOCAL__</string>
+    <string>--forever</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+  <key>ProcessType</key>
+  <string>Background</string>
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+  <key>StandardOutPath</key>
+  <string>__CODEX_VOICE_STDOUT__</string>
+  <key>StandardErrorPath</key>
+  <string>__CODEX_VOICE_STDERR__</string>
+</dict>
+</plist>
