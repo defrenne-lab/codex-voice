@@ -5,11 +5,17 @@ import SwiftUI
 @MainActor
 final class CodexVoiceAppDelegate: NSObject, NSApplicationDelegate {
   static var launchHandler: (() -> Void)?
+  static var terminationHandler: (() -> Void)?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApplication.shared.setActivationPolicy(.accessory)
     Self.launchHandler?()
     Self.launchHandler = nil
+  }
+
+  func applicationWillTerminate(_ notification: Notification) {
+    Self.terminationHandler?()
+    Self.terminationHandler = nil
   }
 }
 
@@ -158,6 +164,9 @@ struct CodexVoiceMenuApp: App {
     CodexVoiceAppDelegate.launchHandler = {
       VoiceRemoteStatusItemController.shared.install(model: model)
       model.start()
+    }
+    CodexVoiceAppDelegate.terminationHandler = {
+      model.shutdown()
     }
     Task { @MainActor in
       try? await Task.sleep(nanoseconds: 500_000_000)

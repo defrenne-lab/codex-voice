@@ -286,7 +286,7 @@ Le runtime expose désormais sur `127.0.0.1` un WebSocket versionné et authenti
 - empaqueter le runtime validé comme service Voice Core sur le Mac mini ;
 - conserver l'adaptateur composite JSONL live + App Server snapshot déjà validé ;
 - transformer le client de diagnostic en app Voice Remote sur le MacBook ;
-- automatiser le tunnel SSH persistant ;
+- maintenir automatiquement le tunnel SSH persistant depuis Voice Remote ;
 - lecture macOS TTS de la tâche principale ;
 - Option coupe immédiatement ;
 - exposer dans l'app l'activation persistante, la sourdine et le volume distant déjà disponibles dans l'API.

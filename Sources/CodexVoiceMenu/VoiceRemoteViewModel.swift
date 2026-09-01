@@ -47,6 +47,7 @@ final class VoiceRemoteViewModel: ObservableObject {
   var optionPressedHandler: (() -> Void)?
 
   private let optionMonitor = GlobalOptionMonitor()
+  private let tunnelManager = SSHTunnelManager()
   private var connection: PersistentVoiceControlWebSocketClient?
   private var connectTask: Task<Void, Never>?
   private var reconnectTask: Task<Void, Never>?
@@ -63,6 +64,9 @@ final class VoiceRemoteViewModel: ObservableObject {
 
   init(configuration: VoiceRemoteConfiguration = .current()) {
     self.configuration = configuration
+    tunnelManager.stateHandler = { [weak self] state in
+      self?.handleTunnelState(state)
+    }
   }
 
   var deviceStatus: String {
@@ -144,7 +148,19 @@ final class VoiceRemoteViewModel: ObservableObject {
       self?.interruptAudio()
       self?.optionPressedHandler?()
     }
+    startManagedTunnelIfConfigured()
     connect()
+  }
+
+  func shutdown() {
+    optionMonitor.stop()
+    connectTask?.cancel()
+    reconnectTask?.cancel()
+    volumeTask?.cancel()
+    tunnelManager.stop()
+    let currentConnection = connection
+    connection = nil
+    Task { await currentConnection?.disconnect() }
   }
 
   func setVoiceEnabled(_ enabled: Bool) {
@@ -238,7 +254,11 @@ final class VoiceRemoteViewModel: ObservableObject {
         guard !Task.isCancelled, connectionGeneration == generation else { return }
         connection = nil
         connectionPhase = .disconnected
-        lastError = error.localizedDescription
+        if case .failed(let message) = tunnelManager.state {
+          lastError = "Tunnel SSH : \(message)"
+        } else {
+          lastError = error.localizedDescription
+        }
         scheduleReconnect()
       }
     }
@@ -285,6 +305,32 @@ final class VoiceRemoteViewModel: ObservableObject {
         guard let self else { return }
         lastError = error.localizedDescription
       }
+    }
+  }
+
+  private func startManagedTunnelIfConfigured() {
+    guard configuration.supportsManagedSSHTunnel,
+      let target = configuration.initialSSHTarget?.nilIfEmpty
+    else { return }
+    do {
+      let specification = try SSHTunnelSpecification(
+        target: target,
+        localPort: configuration.url.port ?? Int(VoiceControlProtocol.defaultPort)
+      )
+      tunnelManager.start(specification)
+    } catch {
+      lastError = error.localizedDescription
+    }
+  }
+
+  private func handleTunnelState(_ state: SSHTunnelManager.State) {
+    switch state {
+    case .running:
+      if connectionPhase == .disconnected { reconnect() }
+    case .failed(let message):
+      if connectionPhase != .connected { lastError = "Tunnel SSH : \(message)" }
+    case .idle, .starting:
+      break
     }
   }
 

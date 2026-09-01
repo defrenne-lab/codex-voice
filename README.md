@@ -27,7 +27,7 @@ V3 is a clean Swift rewrite shaped by several months of daily use. Its product r
 - Voice on/off, app-level volume and stop controls.
 - Remote selection of the installed high-quality Thomas or Aurélie voice and the four proven V2 speeds.
 - Live authenticated state over a persistent WebSocket connection.
-- Localhost-only control service designed to travel through an SSH tunnel.
+- Localhost-only control service reached through an SSH tunnel managed by the MacBook app.
 - macOS `AVSpeechSynthesizer` output on the Mac that runs Codex.
 - Multi-task ingestion, deduplication and main-conversation selection.
 - Non-preemptive audio queue: another Codex task cannot cut in.
@@ -87,13 +87,22 @@ scp <mini-user>@<mini-host>:~/.codex-voice/control-token ~/.codex-voice/control-
 chmod 600 ~/.codex-voice/control-token
 ```
 
-Keep this SSH tunnel open during the session:
+Make one normal SSH connection first so macOS records the Mac mini's host key and confirm that key-based login works without a password prompt:
 
 ```shell
-ssh -N -L 48731:127.0.0.1:48731 <mini-user>@<mini-host>
+ssh <mini-user>@<mini-host> true
 ```
 
-Then launch **Codex Voice 3**. On first use, macOS may request Input Monitoring permission. The app observes Option without consuming or modifying the event, so Codex still receives its normal push-to-talk shortcut.
+Then create the private MacBook configuration used by Voice Remote:
+
+```shell
+printf '%s\n' 'CODEX_VOICE_SSH_TARGET=<mini-user>@<mini-host>' > ~/.codex-voice/.env
+chmod 600 ~/.codex-voice/.env
+```
+
+Launch **Codex Voice 3**. It starts the localhost SSH tunnel, keeps it alive and reconnects automatically. No password is stored or requested by the app. If `.env` is absent, the previous manually managed tunnel remains supported.
+
+On first use, macOS may request Input Monitoring permission. The app observes Option without consuming or modifying the event, so Codex still receives its normal push-to-talk shortcut.
 
 Because v0.1 is not notarized, macOS may ask you to confirm the first launch through Finder. Always verify that the archive came from this repository and compare its published SHA-256 checksum before opening it.
 
@@ -115,7 +124,7 @@ Scripts/build-remote-app.sh
 Scripts/package-remote-app.sh
 ```
 
-The package script creates `.build/Codex-Voice-3-macOS.zip` and a matching SHA-256 file. The project currently has 42 automated tests around ingestion, ordering, orchestration, audio coordination, authentication, remote settings, deduplication and token permissions.
+The package script creates `.build/Codex-Voice-3-macOS.zip` and a matching SHA-256 file. The project currently has 53 automated tests around ingestion, ordering, orchestration, audio coordination, authentication, remote settings, SSH configuration, deduplication and token permissions.
 
 ## Security model
 
@@ -123,6 +132,8 @@ The package script creates `.build/Codex-Voice-3-macOS.zip` and a matching SHA-2
 - Plain WebSockets are accepted only for localhost; non-local endpoints must use TLS.
 - A random 256-bit bearer token is created locally with `0700` directory and `0600` file permissions.
 - The token, transcripts and diagnostic state are never part of the release archive.
+- The SSH target is read from the MacBook's private `~/.codex-voice/.env`, validated before it becomes a process argument, and never included in the release.
+- The managed SSH process accepts key-based authentication only and forwards loopback port `48731` to the same loopback port on the Mac mini.
 - The remote API controls voice only; it does not expose arbitrary Codex operations.
 
 See [SECURITY.md](SECURITY.md) and [REMOTE-CONTROL.md](REMOTE-CONTROL.md) for the protocol and threat boundaries.
@@ -134,7 +145,7 @@ The foundations intentionally come before the richer experience. Planned work in
 - short, calm summaries when parallel tasks finish;
 - a global history of readable answer blocks and explicit replay;
 - spoken-text adaptation for long or code-heavy paragraphs;
-- easier tunnel lifecycle and device pairing;
+- direct device pairing for a future iPad surface;
 - a lightweight iPad control surface.
 
 The design rationale lives in [PRODUCT-BRIEF-V3.md](PRODUCT-BRIEF-V3.md). Architecture probes and validated trade-offs are kept in the repository so the project remains understandable rather than becoming a black box.

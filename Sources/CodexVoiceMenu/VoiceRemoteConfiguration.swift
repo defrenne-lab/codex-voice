@@ -8,19 +8,30 @@ struct VoiceRemoteConfiguration {
   let deviceName: String
   let clientID: String
   let isPreview: Bool
+  let initialSSHTarget: String?
+
+  var supportsManagedSSHTunnel: Bool {
+    guard url.scheme?.lowercased() == "ws", url.port == Int(VoiceControlProtocol.defaultPort)
+    else { return false }
+    return ["127.0.0.1", "localhost", "::1"].contains(url.host?.lowercased() ?? "")
+  }
 
   static func current(
     arguments: [String] = CommandLine.arguments,
-    environment: [String: String] = ProcessInfo.processInfo.environment
+    environment: [String: String] = ProcessInfo.processInfo.environment,
+    environmentFileURL: URL = VoiceEnvironmentFile.defaultURL
   ) -> VoiceRemoteConfiguration {
+    var resolvedEnvironment = (try? VoiceEnvironmentFile.load(from: environmentFileURL)) ?? [:]
+    resolvedEnvironment.merge(environment) { _, processValue in processValue }
     var url = URL(
-      string: environment["CODEX_VOICE_REMOTE_URL"]
+      string: resolvedEnvironment["CODEX_VOICE_REMOTE_URL"]
         ?? "ws://127.0.0.1:\(VoiceControlProtocol.defaultPort)/control"
     )!
-    var tokenFile = environment["CODEX_VOICE_TOKEN_FILE"].map {
-      URL(fileURLWithPath: $0).standardizedFileURL
+    var tokenFile = resolvedEnvironment["CODEX_VOICE_TOKEN_FILE"].map {
+      URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath).standardizedFileURL
     } ?? VoiceControlTokenStore.defaultURL
-    var deviceName = environment["CODEX_VOICE_DEVICE_NAME"] ?? "Mac mini"
+    var deviceName = resolvedEnvironment["CODEX_VOICE_DEVICE_NAME"] ?? "Mac mini"
+    let initialSSHTarget = resolvedEnvironment["CODEX_VOICE_SSH_TARGET"]
     var isPreview = false
 
     var index = 1
@@ -49,7 +60,8 @@ struct VoiceRemoteConfiguration {
       tokenFile: tokenFile,
       deviceName: deviceName,
       clientID: "\(computerName).codex-voice-menu",
-      isPreview: isPreview
+      isPreview: isPreview,
+      initialSSHTarget: initialSSHTarget
     )
   }
 }

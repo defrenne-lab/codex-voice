@@ -6,7 +6,7 @@ Date de validation : 31 août 2026
 
 Le Mac mini expose maintenant un serveur WebSocket de contrôle vocal lié exclusivement à `127.0.0.1`. Un client macOS séparé, `codex-voice-remote`, sait consulter l'état et envoyer les commandes `interrupt`, `enable`, `disable`, `mute`, `unmute`, `volume`, `rate` et `voice`.
 
-Le transport est destiné à traverser un tunnel SSH depuis le MacBook. Aucun port Codex Voice n'est publié sur le Wi-Fi et l'App Server de Codex n'est jamais exposé.
+Le transport traverse un tunnel SSH maintenu par l'app MacBook. Aucun port Codex Voice n'est publié sur le Wi-Fi et l'App Server de Codex n'est jamais exposé.
 
 ## Contrat du protocole
 
@@ -55,19 +55,23 @@ Sur le Mac mini, le runtime final démarrera de cette manière :
 swift run -c release codex-voice-local --disable-voice --forever
 ```
 
-Pour préparer le MacBook une première fois :
+Pour préparer le MacBook une première fois, copier le jeton puis vérifier qu'une connexion par clé ne demande pas de mot de passe :
 
 ```shell
 install -d -m 700 ~/.codex-voice
 scp macmini:~/.codex-voice/control-token ~/.codex-voice/control-token
 chmod 600 ~/.codex-voice/control-token
+ssh macmini true
 ```
 
-Le tunnel reste ensuite ouvert pendant la session :
+La cible SSH est conservée uniquement dans la configuration privée du MacBook :
 
 ```shell
-ssh -N -L 48731:127.0.0.1:48731 macmini
+printf '%s\n' 'CODEX_VOICE_SSH_TARGET=macmini' > ~/.codex-voice/.env
+chmod 600 ~/.codex-voice/.env
 ```
+
+Au lancement, l'app exécute `/usr/bin/ssh` en mode non interactif, ouvre uniquement `127.0.0.1:48731`, utilise les keep-alive SSH et recrée le tunnel après une coupure. Elle ne stocke et ne demande aucun mot de passe. Sans cette variable, un tunnel lancé manuellement reste compatible.
 
 Le client parle alors à son propre localhost :
 
@@ -85,7 +89,7 @@ Par sécurité, le client refuse une URL `ws://` qui ne vise pas `localhost`. Un
 
 ## Validation
 
-La suite compte 42 tests, dont 7 scénarios du service de contrôle et 3 scénarios du magasin de jeton. Elle vérifie l'authentification, l'absence de texte dans l'état, la mutation des réglages, l'interruption de toute la file, la déduplication des séquences et les permissions privées du jeton.
+La suite compte 53 tests. Elle vérifie notamment l'authentification, l'absence de texte dans l'état, la mutation des réglages, l'interruption de toute la file, la déduplication des séquences, les permissions privées du jeton, le parseur `.env` et la construction restrictive de la commande SSH.
 
 Le vrai serveur Network.framework et le vrai client URLSession ont également été exécutés ensemble sur `127.0.0.1` :
 
@@ -111,7 +115,7 @@ La voix est restée désactivée pendant toute la validation et le volume a ét�
 - interruption immédiate de toute la file audio ;
 - observation passive de la touche Option, sans empêcher Codex de recevoir le même événement.
 
-L'app utilise par défaut le tunnel local et le jeton déjà documentés. Elle accepte également `CODEX_VOICE_REMOTE_URL`, `CODEX_VOICE_TOKEN_FILE` et `CODEX_VOICE_DEVICE_NAME`, ou les arguments `--url`, `--token-file` et `--device-name`.
+L'app utilise par défaut le tunnel local et le jeton déjà documentés. Elle charge d'abord `~/.codex-voice/.env`, puis laisse les variables du processus les remplacer. Les réglages pris en charge sont `CODEX_VOICE_SSH_TARGET`, `CODEX_VOICE_REMOTE_URL`, `CODEX_VOICE_TOKEN_FILE` et `CODEX_VOICE_DEVICE_NAME`. Les arguments `--url`, `--token-file` et `--device-name` restent disponibles.
 
 Le mode `--preview` affiche l'état de référence sans réseau et sans produire de son. Il sert uniquement à vérifier le rendu et à préparer les captures de démonstration.
 
@@ -127,7 +131,7 @@ Au premier lancement, macOS peut demander l'autorisation de surveiller le clavie
 
 Un clic gauche sur le halo ouvre les contrôles. Un clic droit propose de quitter proprement l'app sans ajouter de commande permanente dans la popin principale.
 
-Le tunnel SSH reste volontairement séparé de l'app à ce stade. Sa création automatique et l'appairage direct constituent une brique ultérieure.
+Le tunnel SSH appartient au cycle de vie de l'app : il démarre avec elle, se relance après une déconnexion et s'arrête lors d'une fermeture normale. L'appairage direct sans SSH reste une brique ultérieure destinée notamment à l'iPad.
 
 ## Installation du service sur le Mac mini
 
