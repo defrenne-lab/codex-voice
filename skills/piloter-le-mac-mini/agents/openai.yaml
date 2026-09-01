@@ -1,0 +1,4 @@
+interface:
+  display_name: "Piloter le Mac mini"
+  short_description: "Contrôler le son et la voix du Mac mini"
+  default_prompt: "Utilise $piloter-le-mac-mini pour afficher l’état audio du Mac mini."

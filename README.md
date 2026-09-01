@@ -25,7 +25,7 @@ V3 is a clean Swift rewrite shaped by several months of daily use. Its product r
 - Native macOS menu-bar controller with a compact blue halo.
 - Global, passive Option-key observation for immediate remote interruption.
 - Voice on/off, app-level volume and stop controls.
-- Remote selection of the installed Thomas or Aurélie voice and the four proven V2 speeds.
+- Remote selection of the installed high-quality Thomas or Aurélie voice and the four proven V2 speeds.
 - Live authenticated state over a persistent WebSocket connection.
 - Localhost-only control service designed to travel through an SSH tunnel.
 - macOS `AVSpeechSynthesizer` output on the Mac that runs Codex.
@@ -44,6 +44,16 @@ Codex Voice is split into two small applications:
 2. **Voice Remote** lives in the MacBook menu bar. It reaches that API through SSH, displays the live state and turns Option into a universal “I am speaking now” command.
 
 The controller never receives the text being read. Remote state contains only operational metadata such as voice state, volume, task title, reading kind and queue counts. The Codex App Server is never exposed on the network.
+
+### Conversational Mac mini control
+
+The repository includes the `piloter-le-mac-mini` Codex skill. Once copied to `~/.codex/skills`, it lets a Codex conversation running on the Mac mini inspect audio state, change system or voice volume, select one of the four proven speech speeds, enable or disable speech, and stop the current audio queue. This is especially useful when the conversation is controlled from an iPad.
+
+```bash
+cp -R skills/piloter-le-mac-mini ~/.codex/skills/
+```
+
+The skill uses the same authenticated loopback control channel as the menu bar controller. It does not expose a new network service.
 
 ## Install
 

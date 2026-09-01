@@ -81,10 +81,10 @@ final class VoiceRemoteViewModel: ObservableObject {
 
   var preferredVoices: [VoiceControlVoice] {
     ["thomas", "aurelie"].compactMap { expectedName in
-      availableVoices.first {
-        $0.language.lowercased().hasPrefix("fr-fr")
-          && normalizedVoiceName($0.name).contains(expectedName)
-      }
+      VoiceControlVoiceCatalog.recommendedFrenchVoice(
+        named: expectedName,
+        from: availableVoices
+      )
     }
   }
 
@@ -114,8 +114,8 @@ final class VoiceRemoteViewModel: ObservableObject {
       rate = 0.53
       availableVoices = [
         VoiceControlVoice(
-          identifier: "com.apple.voice.compact.fr-FR.Thomas",
-          name: "Thomas",
+          identifier: "com.apple.voice.enhanced.fr-FR.Thomas",
+          name: "Thomas (Enhanced)",
           language: "fr-FR"
         ),
         VoiceControlVoice(
@@ -271,11 +271,6 @@ final class VoiceRemoteViewModel: ObservableObject {
     if let voices = state.availableVoices { availableVoices = voices }
     currentAudio = state.currentAudio
     queuedUnitCount = state.queuedUnitCount
-  }
-
-  private func normalizedVoiceName(_ value: String) -> String {
-    value.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-      .lowercased()
   }
 
   private func perform(_ command: VoiceControlCommand) {

@@ -11,14 +11,18 @@ LOG_DIR="${APP_SUPPORT_DIR}/logs"
 LAUNCH_AGENTS_DIR="${HOME}/Library/LaunchAgents"
 PLIST_PATH="${LAUNCH_AGENTS_DIR}/${SERVICE_LABEL}.plist"
 INSTALLED_BINARY="${BIN_DIR}/codex-voice-local"
+INSTALLED_CONTROL_BINARY="${BIN_DIR}/codex-voice-remote"
 USER_ID="$(/usr/bin/id -u)"
 
 cd "${PROJECT_DIR}"
 swift build -c release --product codex-voice-local
+swift build -c release --product codex-voice-remote
 
 /bin/mkdir -p "${BIN_DIR}" "${LOG_DIR}" "${LAUNCH_AGENTS_DIR}"
 /bin/cp ".build/release/codex-voice-local" "${INSTALLED_BINARY}"
+/bin/cp ".build/release/codex-voice-remote" "${INSTALLED_CONTROL_BINARY}"
 /bin/chmod 755 "${INSTALLED_BINARY}"
+/bin/chmod 755 "${INSTALLED_CONTROL_BINARY}"
 /bin/cp "Resources/${SERVICE_LABEL}.plist" "${PLIST_PATH}"
 
 /usr/bin/plutil -replace ProgramArguments -json "[\"${INSTALLED_BINARY}\",\"--forever\"]" "${PLIST_PATH}"
@@ -44,4 +48,5 @@ fi
 
 print "Service installé : ${SERVICE_LABEL}"
 print "Binaire : ${INSTALLED_BINARY}"
+print "Contrôleur : ${INSTALLED_CONTROL_BINARY}"
 print "Logs : ${LOG_DIR}"

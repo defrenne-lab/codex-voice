@@ -17,5 +17,9 @@ jobs:
         run: swift --version
       - name: Test
         run: swift test
+      - name: Validate bundled skill
+        run: |
+          test -x skills/piloter-le-mac-mini/scripts/control_mac_mini.sh
+          zsh -n skills/piloter-le-mac-mini/scripts/control_mac_mini.sh
       - name: Build release app
         run: Scripts/build-remote-app.sh
