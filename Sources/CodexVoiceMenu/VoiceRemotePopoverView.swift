@@ -27,8 +27,13 @@ struct VoiceRemotePopoverView: View {
 
   private var header: some View {
     VStack(alignment: .leading, spacing: 4) {
-      Text("Codex Voice 3")
-        .font(.system(size: 16, weight: .semibold))
+      HStack(alignment: .firstTextBaseline, spacing: 7) {
+        Text("Codex Voice 3")
+          .font(.system(size: 16, weight: .semibold))
+        Text("v\(applicationVersion)")
+          .font(.system(size: 11, weight: .medium))
+          .foregroundStyle(.secondary)
+      }
       Text(model.deviceStatus)
         .font(.system(size: 13))
         .foregroundStyle(.secondary)
@@ -246,6 +251,11 @@ struct VoiceRemotePopoverView: View {
     if model.volume < 0.35 { return "speaker.wave.1.fill" }
     if model.volume < 0.7 { return "speaker.wave.2.fill" }
     return "speaker.wave.3.fill"
+  }
+
+  private var applicationVersion: String {
+    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+      ?? "développement"
   }
 }
 

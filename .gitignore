@@ -3,5 +3,6 @@
 .swiftpm/
 .DS_Store
 .env
+.signing-identity.local
 *.log
 control-token

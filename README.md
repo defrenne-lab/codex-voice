@@ -34,7 +34,7 @@ V3 is a clean Swift rewrite shaped by several months of daily use. Its product r
 - Persistent safe defaults: a new installation starts silent and re-enabling voice never replays an old backlog.
 - A user LaunchAgent installer for the headless Mac; no administrator account required.
 
-The first public release is an Apple Silicon developer preview for macOS 13 or later. It is ad-hoc signed, not Developer ID signed or notarized.
+The first public release is an Apple Silicon developer preview for macOS 13 or later. Starting with v0.1.5, release archives use a stable Apple Development signature so macOS can recognize updates as the same app. They are not Developer ID signed or notarized yet.
 
 ## Architecture
 
@@ -124,6 +124,14 @@ Scripts/build-remote-app.sh
 Scripts/package-remote-app.sh
 ```
 
+Local builds remain ad-hoc signed by default. A release maintainer can select a persistent identity without committing it:
+
+```shell
+CODEX_VOICE_SIGNING_IDENTITY="<certificate name or SHA-1>" Scripts/package-remote-app.sh
+```
+
+For repeatable releases, that value may instead be stored as the only line of the gitignored `.signing-identity.local` file on the build Mac. The file contains an identity reference, not the private key; the key remains protected by the macOS Keychain.
+
 The package script creates `.build/Codex-Voice-3-macOS.zip` and a matching SHA-256 file. The project currently has 53 automated tests around ingestion, ordering, orchestration, audio coordination, authentication, remote settings, SSH configuration, deduplication and token permissions.
 
 ## Security model
@@ -134,6 +142,7 @@ The package script creates `.build/Codex-Voice-3-macOS.zip` and a matching SHA-2
 - The token, transcripts and diagnostic state are never part of the release archive.
 - The SSH target is read from the MacBook's private `~/.codex-voice/.env`, validated before it becomes a process argument, and never included in the release.
 - The managed SSH process accepts key-based authentication only and forwards loopback port `48731` to the same loopback port on the Mac mini.
+- Published updates are signed with the same persistent identity from v0.1.5 onward, avoiding a new privacy identity for every binary revision.
 - The remote API controls voice only; it does not expose arbitrary Codex operations.
 
 See [SECURITY.md](SECURITY.md) and [REMOTE-CONTROL.md](REMOTE-CONTROL.md) for the protocol and threat boundaries.

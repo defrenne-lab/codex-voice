@@ -16,4 +16,4 @@ The file `~/.codex-voice/control-token` is a bearer credential. Anyone who obtai
 
 The optional MacBook file `~/.codex-voice/.env` contains the SSH destination used to create the loopback tunnel. The destination is validated before it becomes an argument to `/usr/bin/ssh`. The app enables batch mode, so it can use an existing SSH key but cannot store or prompt for a password. Keep the file local and at `0600`; do not commit private hostnames or account names.
 
-The GitHub release is ad-hoc signed and is not notarized by Apple. Verify the release origin and the attached SHA-256 checksum before first launch.
+Starting with v0.1.5, the GitHub release uses a stable Apple Development signature so successive builds share a designated requirement. This is not a Developer ID distribution signature and the app is not notarized by Apple. Verify the release origin and the attached SHA-256 checksum before first launch.
