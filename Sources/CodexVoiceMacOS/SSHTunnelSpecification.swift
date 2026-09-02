@@ -58,6 +58,10 @@ public struct SSHTunnelSpecification: Equatable, Sendable {
     ]
   }
 
+  public var remoteHost: String {
+    String(target.split(separator: "@", omittingEmptySubsequences: false).last ?? "")
+  }
+
   private static func isValidTarget(_ target: String) -> Bool {
     guard !target.isEmpty, target.first != "-", target.count <= 255 else { return false }
     let parts = target.split(separator: "@", omittingEmptySubsequences: false)

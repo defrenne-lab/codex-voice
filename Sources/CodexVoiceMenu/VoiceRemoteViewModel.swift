@@ -92,6 +92,7 @@ final class VoiceRemoteViewModel: ObservableObject {
   var isReading: Bool { currentAudio != nil }
   var canStop: Bool { connectionPhase == .connected && (currentAudio != nil || queuedUnitCount > 0) }
   var controlsEnabled: Bool { connectionPhase == .connected }
+  var canOpenScreenSharing: Bool { configuration.screenSharingURL != nil }
 
   var preferredVoices: [VoiceControlVoice] {
     ["thomas", "aurelie"].compactMap { expectedName in
@@ -258,6 +259,18 @@ final class VoiceRemoteViewModel: ObservableObject {
         lastError = error.localizedDescription
       }
     }
+  }
+
+  func openScreenSharing() {
+    guard let url = configuration.screenSharingURL else {
+      lastError = "L’adresse du Mac mini manque dans la configuration SSH."
+      return
+    }
+    guard NSWorkspace.shared.open(url) else {
+      lastError = "Le partage d’écran n’a pas pu être ouvert."
+      return
+    }
+    lastError = nil
   }
 
   func reconnect() {

@@ -114,6 +114,7 @@ La voix est restée désactivée pendant toute la validation et le volume a ét�
 - vitesse lente, normale, rapide ou très rapide selon les valeurs éprouvées dans la V2 ;
 - ouverture du dictionnaire dans TextEdit et synchronisation des enregistrements vers le Mac mini ;
 - interruption immédiate de toute la file audio ;
+- ouverture directe du partage d’écran vers l’hôte déjà configuré pour SSH, même lorsque le contrôle vocal est hors ligne ;
 - observation passive de la touche Option, sans empêcher Codex de recevoir le même événement.
 
 L'app utilise par défaut le tunnel local et le jeton déjà documentés. Elle charge d'abord `~/.codex-voice/.env`, puis laisse les variables du processus les remplacer. Les réglages pris en charge sont `CODEX_VOICE_SSH_TARGET`, `CODEX_VOICE_REMOTE_URL`, `CODEX_VOICE_TOKEN_FILE` et `CODEX_VOICE_DEVICE_NAME`. Les arguments `--url`, `--token-file` et `--device-name` restent disponibles.

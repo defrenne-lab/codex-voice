@@ -27,6 +27,7 @@ V3 is a clean Swift rewrite shaped by several months of daily use. Its product r
 - Voice on/off, actual Mac mini system volume and stop controls.
 - Remote selection of the installed high-quality Thomas or Aurélie voice and the four proven V2 speeds.
 - A pronunciation dictionary editable from the MacBook in TextEdit and synchronized to the Mac mini.
+- One-click access to the configured Mac mini through macOS Screen Sharing.
 - Live authenticated state over a persistent WebSocket connection.
 - Localhost-only control service reached through an SSH tunnel managed by the MacBook app.
 - macOS `AVSpeechSynthesizer` output on the Mac that runs Codex.
@@ -116,6 +117,7 @@ Because v0.1 is not notarized, macOS may ask you to confirm the first launch thr
 - Switch **Voix active** off before leaving long-running overnight tasks.
 - Adjust the actual Mac mini output volume with the volume slider.
 - Open **Dictionnaire** to edit pronunciations in TextEdit. Saving synchronizes the live file to the Mac mini.
+- Click **Ouvrir le partage d’écran** to reach the configured Mac mini directly, including while Codex Voice is offline.
 - Right-click the halo to quit the MacBook controller.
 
 An interruption is not a pause: speech never resumes automatically. The full answer remains visible in Codex.
@@ -136,7 +138,7 @@ CODEX_VOICE_SIGNING_IDENTITY="<certificate name or SHA-1>" Scripts/package-remot
 
 For repeatable releases, that value may instead be stored as the only line of the gitignored `.signing-identity.local` file on the build Mac. The file contains an identity reference, not the private key; the key remains protected by the macOS Keychain.
 
-The package script creates a versioned disk image such as `.build/Codex-Voice-3-v0.1.7-macOS.dmg` and a matching SHA-256 file. The DMG contains the signed application and an Applications shortcut, making the installed version explicit before the image is opened. The project currently has 62 automated tests around ingestion, task-title updates, ordering, orchestration, audio coordination, authentication, remote settings, pronunciation handling, SSH configuration, deduplication and token permissions.
+The package script creates a versioned disk image such as `.build/Codex-Voice-3-v0.1.8-macOS.dmg` and a matching SHA-256 file. The DMG contains the signed application and an Applications shortcut, making the installed version explicit before the image is opened. The project currently has 63 automated tests around ingestion, task-title updates, ordering, orchestration, audio coordination, authentication, remote settings, pronunciation handling, SSH configuration, deduplication and token permissions.
 
 ## Pronunciation dictionary and GitHub
 

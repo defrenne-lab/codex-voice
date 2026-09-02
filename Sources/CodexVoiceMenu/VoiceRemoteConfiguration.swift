@@ -16,6 +16,16 @@ struct VoiceRemoteConfiguration {
     return ["127.0.0.1", "localhost", "::1"].contains(url.host?.lowercased() ?? "")
   }
 
+  var screenSharingURL: URL? {
+    guard let target = initialSSHTarget,
+      let specification = try? SSHTunnelSpecification(target: target)
+    else { return nil }
+    var components = URLComponents()
+    components.scheme = "vnc"
+    components.host = specification.remoteHost
+    return components.url
+  }
+
   static func current(
     arguments: [String] = CommandLine.arguments,
     environment: [String: String] = ProcessInfo.processInfo.environment,

@@ -27,6 +27,14 @@ final class SSHTunnelSpecificationTests: XCTestCase {
     XCTAssertEqual(specification.target, "voice@mini.local")
   }
 
+  func testExposesRemoteHostWithoutTheSSHUser() throws {
+    let specification = try SSHTunnelSpecification(
+      target: "sebastiendefrenne@macminisebdef.local"
+    )
+
+    XCTAssertEqual(specification.remoteHost, "macminisebdef.local")
+  }
+
   func testRejectsTargetsThatCouldBecomeSSHArguments() {
     for target in [
       "-oProxyCommand=bad",

@@ -16,6 +16,10 @@ struct VoiceRemotePopoverView: View {
       volumeSection
       Divider()
       stopSection
+      if model.canOpenScreenSharing {
+        Divider()
+        screenSharingSection
+      }
       if !model.optionMonitoringAuthorized {
         Divider()
         optionPermissionSection
@@ -270,6 +274,27 @@ struct VoiceRemotePopoverView: View {
     .buttonStyle(.plain)
     .padding(.horizontal, 18)
     .padding(.vertical, 11)
+  }
+
+  private var screenSharingSection: some View {
+    Button(action: model.openScreenSharing) {
+      HStack(spacing: 14) {
+        Image(systemName: "display")
+          .font(.system(size: 17, weight: .medium))
+          .foregroundStyle(.secondary)
+          .frame(width: 34)
+        Text("Ouvrir le partage d’écran")
+          .font(.system(size: 14, weight: .medium))
+        Spacer()
+        Image(systemName: "arrow.up.forward.app")
+          .font(.system(size: 11, weight: .semibold))
+          .foregroundStyle(.tertiary)
+      }
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .padding(.horizontal, 18)
+    .padding(.vertical, 13)
   }
 
   private var volumeSymbol: String {
