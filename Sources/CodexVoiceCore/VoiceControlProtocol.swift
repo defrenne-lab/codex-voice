@@ -5,6 +5,7 @@ public enum VoiceControlProtocol {
   public static let webSocketSubprotocol = "codex-voice.v1"
   public static let defaultPort: UInt16 = 48_731
   public static let maximumMessageBytes = 64 * 1_024
+  public static let maximumPronunciationDictionaryBytes = 32 * 1_024
 }
 
 public enum VoiceControlCommandKind: String, Codable, Sendable {
@@ -15,6 +16,8 @@ public enum VoiceControlCommandKind: String, Codable, Sendable {
   case setVolume
   case setRate
   case setVoiceIdentifier
+  case getPronunciationDictionary
+  case setPronunciationDictionary
 }
 
 public struct VoiceControlCommand: Codable, Equatable, Sendable {
@@ -56,6 +59,14 @@ public struct VoiceControlCommand: Codable, Equatable, Sendable {
 
   public static func setVoiceIdentifier(_ identifier: String?) -> VoiceControlCommand {
     VoiceControlCommand(kind: .setVoiceIdentifier, stringValue: identifier ?? "")
+  }
+
+  public static let getPronunciationDictionary = VoiceControlCommand(
+    kind: .getPronunciationDictionary
+  )
+
+  public static func setPronunciationDictionary(_ content: String) -> VoiceControlCommand {
+    VoiceControlCommand(kind: .setPronunciationDictionary, stringValue: content)
   }
 }
 
@@ -123,6 +134,14 @@ public struct VoiceControlVoice: Codable, Equatable, Identifiable, Sendable {
   }
 }
 
+public struct VoiceControlPronunciationDictionary: Codable, Equatable, Sendable {
+  public let content: String
+
+  public init(content: String) {
+    self.content = content
+  }
+}
+
 public struct VoiceControlState: Codable, Equatable, Sendable {
   public let voiceEnabled: Bool
   public let muted: Bool
@@ -137,13 +156,14 @@ public struct VoiceControlState: Codable, Equatable, Sendable {
 
   public init(
     audio: VoiceAudioSnapshot,
+    systemVolume: Float,
     pendingResponseCount: Int,
     mainConversation: VoiceControlConversation? = nil,
     availableVoices: [VoiceControlVoice] = []
   ) {
     voiceEnabled = audio.settings.isEnabled
     muted = audio.settings.isMuted
-    volume = audio.settings.volume
+    volume = min(1, max(0, systemVolume))
     rate = audio.settings.rate
     voiceIdentifier = audio.settings.voiceIdentifier
     self.availableVoices = availableVoices
@@ -183,6 +203,7 @@ public struct VoiceControlMessage: Codable, Equatable, Sendable {
   public let status: VoiceControlResponseStatus?
   public let actionPerformed: Bool?
   public let state: VoiceControlState?
+  public let pronunciationDictionary: VoiceControlPronunciationDictionary?
   public let error: VoiceControlErrorPayload?
 
   public init(
@@ -193,6 +214,7 @@ public struct VoiceControlMessage: Codable, Equatable, Sendable {
     status: VoiceControlResponseStatus? = nil,
     actionPerformed: Bool? = nil,
     state: VoiceControlState? = nil,
+    pronunciationDictionary: VoiceControlPronunciationDictionary? = nil,
     error: VoiceControlErrorPayload? = nil
   ) {
     self.version = version
@@ -202,6 +224,7 @@ public struct VoiceControlMessage: Codable, Equatable, Sendable {
     self.status = status
     self.actionPerformed = actionPerformed
     self.state = state
+    self.pronunciationDictionary = pronunciationDictionary
     self.error = error
   }
 }

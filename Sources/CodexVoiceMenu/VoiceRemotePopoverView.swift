@@ -175,6 +175,32 @@ struct VoiceRemotePopoverView: View {
       }
       .menuStyle(.borderlessButton)
       .disabled(!model.controlsEnabled)
+
+      Divider().padding(.leading, 54)
+
+      Button(action: model.openPronunciationDictionary) {
+        HStack(spacing: 12) {
+          Image(systemName: "text.book.closed.fill")
+            .font(.system(size: 16, weight: .medium))
+            .foregroundStyle(.secondary)
+            .frame(width: 24)
+          Text("Dictionnaire")
+            .font(.system(size: 14, weight: .medium))
+          Spacer(minLength: 8)
+          Text(model.pronunciationDictionaryStatus)
+            .font(.system(size: 13))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+          Image(systemName: "arrow.up.forward.app")
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+      }
+      .buttonStyle(.plain)
+      .disabled(!model.controlsEnabled)
     }
   }
 

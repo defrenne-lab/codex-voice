@@ -4,7 +4,7 @@ Date de validation : 31 août 2026
 
 ## Résultat
 
-Le Mac mini expose maintenant un serveur WebSocket de contrôle vocal lié exclusivement à `127.0.0.1`. Un client macOS séparé, `codex-voice-remote`, sait consulter l'état et envoyer les commandes `interrupt`, `enable`, `disable`, `mute`, `unmute`, `volume`, `rate` et `voice`.
+Le Mac mini expose maintenant un serveur WebSocket de contrôle vocal lié exclusivement à `127.0.0.1`. Un client macOS séparé, `codex-voice-remote`, sait consulter l'état et envoyer les commandes `interrupt`, `enable`, `disable`, `mute`, `unmute`, `volume`, `rate` et `voice`. L'app de barre de menu sait aussi charger et enregistrer le dictionnaire de prononciation.
 
 Le transport traverse un tunnel SSH maintenu par l'app MacBook. Aucun port Codex Voice n'est publié sur le Wi-Fi et l'App Server de Codex n'est jamais exposé.
 
@@ -20,20 +20,20 @@ Le sous-protocole WebSocket est `codex-voice.v1`. Chaque requête JSON contient 
 
 Le serveur conserve la dernière séquence de chaque client pendant son exécution. Une séquence ancienne ou répétée reçoit une réponse `duplicate` et ne réapplique jamais la commande. `interruptAudio` reste donc idempotente, y compris lors d'une reconnexion incertaine.
 
-Les messages sont limités à 64 Kio. Le serveur peut publier un nouvel état aux connexions déjà authentifiées, ce qui prépare l'indicateur temps réel de la future app MacBook.
+Les messages sont limités à 64 Kio et le dictionnaire à 32 Kio. Le serveur peut publier un nouvel état aux connexions déjà authentifiées, ce qui alimente l'indicateur temps réel de l'app MacBook.
 
 ## État exposé
 
 Une réponse authentifiée contient uniquement :
 
-- activation, sourdine, volume, vitesse et voix choisie ;
+- activation, sourdine, volume système, vitesse et voix choisie ;
 - présence d'une lecture et nombre d'unités en file ;
 - identifiants et titre de la tâche actuellement lue ;
 - type de lecture ;
 - nombre de réponses parallèles en attente.
 - catalogue des voix françaises installées, sans aucune donnée de transcript.
 
-Le texte lu n'est jamais envoyé au contrôleur. Une connexion non authentifiée ne reçoit aucun état, même lorsqu'elle emploie une requête JSON valide.
+Le texte lu n'est jamais envoyé au contrôleur. Le contenu du dictionnaire est transmis uniquement en réponse à une commande explicite et authentifiée d'ouverture ou d'enregistrement. Une connexion non authentifiée ne reçoit ni état ni dictionnaire, même lorsqu'elle emploie une requête JSON valide.
 
 ## Jeton local
 
@@ -109,9 +109,10 @@ La voix est restée désactivée pendant toute la validation et le volume a ét�
 
 - état de connexion et conversation actuellement lue ;
 - activation globale de la voix ;
-- volume applicatif ;
+- volume système réel du Mac mini ;
 - choix compact entre Thomas et Aurélie lorsque ces voix sont installées ;
 - vitesse lente, normale, rapide ou très rapide selon les valeurs éprouvées dans la V2 ;
+- ouverture du dictionnaire dans TextEdit et synchronisation des enregistrements vers le Mac mini ;
 - interruption immédiate de toute la file audio ;
 - observation passive de la touche Option, sans empêcher Codex de recevoir le même événement.
 
@@ -153,4 +154,4 @@ Le paquet signé localement et préservant le bundle macOS est produit avec :
 Scripts/package-remote-app.sh
 ```
 
-Il crée `.build/Codex-Voice-3-macOS.zip` et affiche son empreinte SHA-256. Le MacBook récupère séparément cette archive et le jeton privé via SSH ; le jeton ne fait jamais partie du paquet.
+Il crée un DMG versionné et affiche son empreinte SHA-256. Le MacBook récupère séparément cette image et le jeton privé via SSH ; le jeton ne fait jamais partie du paquet.

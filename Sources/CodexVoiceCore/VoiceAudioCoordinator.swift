@@ -3,29 +3,22 @@ import Foundation
 public struct VoiceAudioSettings: Codable, Equatable, Sendable {
   public var isEnabled: Bool
   public var isMuted: Bool
-  public var volume: Float
   public var rate: Float
   public var voiceIdentifier: String?
 
   public init(
     isEnabled: Bool = false,
     isMuted: Bool = false,
-    volume: Float = 0.8,
     rate: Float = 0.48,
     voiceIdentifier: String? = nil
   ) {
     self.isEnabled = isEnabled
     self.isMuted = isMuted
-    self.volume = Self.clampVolume(volume)
     self.rate = Self.clampRate(rate)
     self.voiceIdentifier = voiceIdentifier
   }
 
   public static let safeDefaults = VoiceAudioSettings()
-
-  static func clampVolume(_ value: Float) -> Float {
-    min(1, max(0, value))
-  }
 
   static func clampRate(_ value: Float) -> Float {
     min(1, max(0.1, value))
@@ -85,20 +78,17 @@ public struct VoiceAudioUnit: Equatable, Sendable {
 public struct VoiceSpeechDriverRequest: Equatable, Sendable {
   public let unitID: String
   public let text: String
-  public let volume: Float
   public let rate: Float
   public let voiceIdentifier: String?
 
   public init(
     unitID: String,
     text: String,
-    volume: Float,
     rate: Float,
     voiceIdentifier: String?
   ) {
     self.unitID = unitID
     self.text = text
-    self.volume = volume
     self.rate = rate
     self.voiceIdentifier = voiceIdentifier
   }
@@ -188,7 +178,6 @@ public final class VoiceAudioCoordinator {
     self.driver = driver
     self.settingsStore = settingsStore
     settings = settingsStore?.load() ?? defaultSettings
-    settings.volume = VoiceAudioSettings.clampVolume(settings.volume)
     settings.rate = VoiceAudioSettings.clampRate(settings.rate)
     driver.completionHandler = { [weak self] unitID, outcome in
       self?.driverCompleted(unitID: unitID, outcome: outcome)
@@ -247,13 +236,6 @@ public final class VoiceAudioCoordinator {
     persistAndPublishSettings()
   }
 
-  public func setVolume(_ volume: Float) {
-    let clamped = VoiceAudioSettings.clampVolume(volume)
-    guard settings.volume != clamped else { return }
-    settings.volume = clamped
-    persistAndPublishSettings()
-  }
-
   public func setRate(_ rate: Float) {
     let clamped = VoiceAudioSettings.clampRate(rate)
     guard settings.rate != clamped else { return }
@@ -284,7 +266,6 @@ public final class VoiceAudioCoordinator {
       VoiceSpeechDriverRequest(
         unitID: unit.id,
         text: unit.text,
-        volume: settings.volume,
         rate: settings.rate,
         voiceIdentifier: settings.voiceIdentifier
       )

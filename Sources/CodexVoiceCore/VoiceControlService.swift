@@ -14,6 +14,8 @@ public struct VoiceControlHandlingResult: Equatable, Sendable {
 public final class VoiceControlService {
   private let authorizationToken: String
   private let audio: VoiceAudioCoordinator
+  private let systemVolume: VoiceSystemVolumeControlling
+  private let pronunciationDictionary: VoicePronunciationDictionaryManaging
   private let pendingResponseCount: () -> Int
   private let mainConversation: () -> VoiceControlConversation?
   private let availableVoices: () -> [VoiceControlVoice]
@@ -22,12 +24,16 @@ public final class VoiceControlService {
   public init(
     authorizationToken: String,
     audio: VoiceAudioCoordinator,
+    systemVolume: VoiceSystemVolumeControlling,
+    pronunciationDictionary: VoicePronunciationDictionaryManaging,
     pendingResponseCount: @escaping () -> Int = { 0 },
     mainConversation: @escaping () -> VoiceControlConversation? = { nil },
     availableVoices: @escaping () -> [VoiceControlVoice] = { [] }
   ) {
     self.authorizationToken = authorizationToken
     self.audio = audio
+    self.systemVolume = systemVolume
+    self.pronunciationDictionary = pronunciationDictionary
     self.pendingResponseCount = pendingResponseCount
     self.mainConversation = mainConversation
     self.availableVoices = availableVoices
@@ -36,6 +42,7 @@ public final class VoiceControlService {
   public var state: VoiceControlState {
     VoiceControlState(
       audio: audio.snapshot,
+      systemVolume: systemVolume.volume,
       pendingResponseCount: pendingResponseCount(),
       mainConversation: mainConversation(),
       availableVoices: availableVoices()
@@ -94,6 +101,7 @@ public final class VoiceControlService {
     }
 
     let actionPerformed: Bool
+    var pronunciationDictionaryPayload: VoiceControlPronunciationDictionary?
     switch request.command.kind {
     case .getState:
       actionPerformed = false
@@ -118,9 +126,16 @@ public final class VoiceControlService {
       else {
         return invalidPayload(request, expected: "numberValue entre 0 et 1")
       }
-      let previous = audio.settings.volume
-      audio.setVolume(Float(volume))
-      actionPerformed = previous != audio.settings.volume
+      let previous = systemVolume.volume
+      guard systemVolume.setVolume(Float(volume)) else {
+        return rejected(
+          request,
+          code: "systemVolumeUnavailable",
+          message: "Le volume système du périphérique de sortie ne peut pas être modifié.",
+          authenticated: true
+        )
+      }
+      actionPerformed = abs(previous - systemVolume.volume) > 0.0001
     case .setRate:
       guard let rate = request.command.numberValue, rate.isFinite, (0.1...1).contains(rate)
       else {
@@ -143,6 +158,42 @@ public final class VoiceControlService {
       let previous = audio.settings.voiceIdentifier
       audio.setVoiceIdentifier(identifier)
       actionPerformed = previous != audio.settings.voiceIdentifier
+    case .getPronunciationDictionary:
+      do {
+        pronunciationDictionaryPayload = VoiceControlPronunciationDictionary(
+          content: try pronunciationDictionary.loadContent()
+        )
+      } catch {
+        return rejected(
+          request,
+          code: "pronunciationDictionaryUnavailable",
+          message: error.localizedDescription,
+          authenticated: true
+        )
+      }
+      actionPerformed = false
+    case .setPronunciationDictionary:
+      guard let content = request.command.stringValue,
+        content.utf8.count <= VoiceControlProtocol.maximumPronunciationDictionaryBytes
+      else {
+        return invalidPayload(
+          request,
+          expected: "un dictionnaire UTF-8 de moins de 32 Kio"
+        )
+      }
+      do {
+        let previous = try pronunciationDictionary.loadContent()
+        try pronunciationDictionary.replaceContent(content)
+        pronunciationDictionaryPayload = VoiceControlPronunciationDictionary(content: content)
+        actionPerformed = previous != content
+      } catch {
+        return rejected(
+          request,
+          code: "invalidPronunciationDictionary",
+          message: error.localizedDescription,
+          authenticated: true
+        )
+      }
     }
 
     lastSequenceByClientID[clientID] = request.sequence
@@ -151,7 +202,8 @@ public final class VoiceControlService {
         request,
         status: .ok,
         actionPerformed: actionPerformed,
-        state: state
+        state: state,
+        pronunciationDictionary: pronunciationDictionaryPayload
       ),
       isAuthenticated: true
     )
@@ -191,6 +243,7 @@ public final class VoiceControlService {
     status: VoiceControlResponseStatus,
     actionPerformed: Bool? = nil,
     state: VoiceControlState? = nil,
+    pronunciationDictionary: VoiceControlPronunciationDictionary? = nil,
     error: VoiceControlErrorPayload? = nil
   ) -> VoiceControlMessage {
     VoiceControlMessage(
@@ -200,6 +253,7 @@ public final class VoiceControlService {
       status: status,
       actionPerformed: actionPerformed,
       state: state,
+      pronunciationDictionary: pronunciationDictionary,
       error: error
     )
   }

@@ -1,3 +1,4 @@
+import AppKit
 import CodexVoiceCore
 import CodexVoiceMacOS
 import Foundation
@@ -42,6 +43,7 @@ final class VoiceRemoteViewModel: ObservableObject {
   @Published private(set) var mainConversation: VoiceControlConversation?
   @Published private(set) var queuedUnitCount = 0
   @Published private(set) var optionMonitoringAuthorized = false
+  @Published private(set) var pronunciationDictionaryStatus = "TextEdit"
   @Published private(set) var lastError: String?
 
   let configuration: VoiceRemoteConfiguration
@@ -53,6 +55,9 @@ final class VoiceRemoteViewModel: ObservableObject {
   private var connectTask: Task<Void, Never>?
   private var reconnectTask: Task<Void, Never>?
   private var volumeTask: Task<Void, Never>?
+  private var dictionarySyncTask: Task<Void, Never>?
+  private var dictionaryLastObservedContent: String?
+  private var dictionaryPendingContent: String?
   private var connectionGeneration = UUID()
   private var hasStarted = false
 
@@ -167,6 +172,7 @@ final class VoiceRemoteViewModel: ObservableObject {
     connectTask?.cancel()
     reconnectTask?.cancel()
     volumeTask?.cancel()
+    dictionarySyncTask?.cancel()
     tunnelManager.stop()
     let currentConnection = connection
     connection = nil
@@ -219,6 +225,39 @@ final class VoiceRemoteViewModel: ObservableObject {
 
   func requestOptionMonitoringAuthorization() {
     optionMonitoringAuthorized = optionMonitor.requestAuthorization()
+  }
+
+  func openPronunciationDictionary() {
+    guard controlsEnabled else { return }
+    if configuration.isPreview {
+      pronunciationDictionaryStatus = "Synchronisé"
+      return
+    }
+    guard let connection else { return }
+    pronunciationDictionaryStatus = "Ouverture…"
+
+    Task { [weak self] in
+      do {
+        let response = try await connection.send(.getPronunciationDictionary)
+        guard let self,
+          let content = response.pronunciationDictionary?.content
+        else {
+          throw VoiceRemoteViewModelError.missingPronunciationDictionary
+        }
+        if let state = response.state { apply(state) }
+        let fileURL = try prepareLocalPronunciationDictionary(content)
+        dictionaryLastObservedContent = content
+        dictionaryPendingContent = nil
+        startPronunciationDictionarySync(fileURL: fileURL)
+        openInTextEdit(fileURL)
+        pronunciationDictionaryStatus = "Synchronisé"
+        lastError = nil
+      } catch {
+        guard let self else { return }
+        pronunciationDictionaryStatus = "Indisponible"
+        lastError = error.localizedDescription
+      }
+    }
   }
 
   func reconnect() {
@@ -319,6 +358,78 @@ final class VoiceRemoteViewModel: ObservableObject {
     }
   }
 
+  private func prepareLocalPronunciationDictionary(_ content: String) throws -> URL {
+    let directory = FileManager.default.homeDirectoryForCurrentUser
+      .appendingPathComponent(
+        "Library/Application Support/Codex Voice 3 Remote",
+        isDirectory: true
+      )
+    try FileManager.default.createDirectory(
+      at: directory,
+      withIntermediateDirectories: true
+    )
+    let fileURL = directory.appendingPathComponent(PronunciationDictionary.fileName)
+    try content.write(to: fileURL, atomically: true, encoding: .utf8)
+    return fileURL
+  }
+
+  private func openInTextEdit(_ fileURL: URL) {
+    guard let textEditURL = NSWorkspace.shared.urlForApplication(
+      withBundleIdentifier: "com.apple.TextEdit"
+    ) else {
+      NSWorkspace.shared.open(fileURL)
+      return
+    }
+    let configuration = NSWorkspace.OpenConfiguration()
+    NSWorkspace.shared.open(
+      [fileURL],
+      withApplicationAt: textEditURL,
+      configuration: configuration
+    )
+  }
+
+  private func startPronunciationDictionarySync(fileURL: URL) {
+    dictionarySyncTask?.cancel()
+    dictionarySyncTask = Task { [weak self] in
+      while !Task.isCancelled {
+        try? await Task.sleep(nanoseconds: 750_000_000)
+        guard !Task.isCancelled, let self else { return }
+
+        if let content = try? String(contentsOf: fileURL, encoding: .utf8),
+          content != dictionaryLastObservedContent
+        {
+          dictionaryLastObservedContent = content
+          do {
+            try PronunciationDictionary.validate(content)
+            dictionaryPendingContent = content
+            pronunciationDictionaryStatus = "À synchroniser"
+          } catch {
+            dictionaryPendingContent = nil
+            pronunciationDictionaryStatus = "Format invalide"
+          }
+        }
+
+        guard let content = dictionaryPendingContent,
+          connectionPhase == .connected,
+          let connection
+        else { continue }
+
+        do {
+          pronunciationDictionaryStatus = "Synchronisation…"
+          let response = try await connection.send(.setPronunciationDictionary(content))
+          if let state = response.state { apply(state) }
+          dictionaryPendingContent = nil
+          pronunciationDictionaryStatus = "Synchronisé"
+          lastError = nil
+        } catch {
+          pronunciationDictionaryStatus = "À synchroniser"
+          lastError = error.localizedDescription
+          try? await Task.sleep(nanoseconds: 2_000_000_000)
+        }
+      }
+    }
+  }
+
   private func startManagedTunnelIfConfigured() {
     guard configuration.supportsManagedSSHTunnel,
       let target = configuration.initialSSHTarget?.nilIfEmpty
@@ -358,11 +469,14 @@ final class VoiceRemoteViewModel: ObservableObject {
 
 private enum VoiceRemoteViewModelError: LocalizedError {
   case insecureEndpoint(String)
+  case missingPronunciationDictionary
 
   var errorDescription: String? {
     switch self {
     case .insecureEndpoint(let value):
       return "Endpoint refusé : \(value). Utiliser localhost via SSH ou une URL wss://."
+    case .missingPronunciationDictionary:
+      return "Le service vocal n’a pas renvoyé le dictionnaire de prononciation."
     }
   }
 }

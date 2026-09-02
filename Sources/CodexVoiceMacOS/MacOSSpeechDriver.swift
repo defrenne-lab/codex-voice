@@ -19,22 +19,24 @@ public final class MacOSSpeechDriver: NSObject, VoiceSpeechDriver,
   @preconcurrency AVSpeechSynthesizerDelegate
 {
   private let synthesizer = AVSpeechSynthesizer()
+  private let pronunciationDictionary: PronunciationDictionary
   private var activeUnitID: String?
   private var activeUtterance: AVSpeechUtterance?
 
   public var completionHandler: ((String, VoiceSpeechDriverOutcome) -> Void)?
 
-  public override init() {
+  public init(pronunciationDictionary: PronunciationDictionary) {
+    self.pronunciationDictionary = pronunciationDictionary
     super.init()
     synthesizer.delegate = self
   }
 
   public func speak(_ request: VoiceSpeechDriverRequest) {
     stop()
-    let utterance = AVSpeechUtterance(string: request.text)
+    let utterance = AVSpeechUtterance(string: pronunciationDictionary.applying(to: request.text))
     utterance.rate = request.rate
     utterance.pitchMultiplier = 1
-    utterance.volume = request.volume
+    utterance.volume = 1
     if let identifier = request.voiceIdentifier,
       let voice = AVSpeechSynthesisVoice(identifier: identifier)
     {

@@ -12,7 +12,9 @@ Please use GitHub's private security-advisory flow for this repository when avai
 
 The v0.1 control server listens only on `127.0.0.1` and is intended to be reached through SSH. It must not be rebound or forwarded to an untrusted network without adding TLS and an explicit device-pairing model.
 
-The file `~/.codex-voice/control-token` is a bearer credential. Anyone who obtains it and can reach the control endpoint can change voice state, volume or interrupt audio. Keep its permissions at `0600`, transfer it only through an authenticated channel, and rotate it if it may have been disclosed.
+The file `~/.codex-voice/control-token` is a bearer credential. Anyone who obtains it and can reach the control endpoint can change voice state, system volume, interruption state or the pronunciation dictionary. Keep its permissions at `0600`, transfer it only through an authenticated channel, and rotate it if it may have been disclosed.
+
+The mutable pronunciation dictionary stays in the Mac mini application-support directory. Its content is sent to the MacBook only after an explicit authenticated request from the menu app. The repository snapshot under `Dictionary/` is public and updated manually; review it for private data before every commit.
 
 The optional MacBook file `~/.codex-voice/.env` contains the SSH destination used to create the loopback tunnel. The destination is validated before it becomes an argument to `/usr/bin/ssh`. The app enables batch mode, so it can use an existing SSH key but cannot store or prompt for a password. Keep the file local and at `0600`; do not commit private hostnames or account names.
 

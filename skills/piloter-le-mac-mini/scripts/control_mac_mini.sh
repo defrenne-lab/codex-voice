@@ -6,7 +6,7 @@ CONTROL_BINARY="${CODEX_VOICE_CONTROL_BIN:-${HOME}/Library/Application Support/C
 TOKEN_FILE="${CODEX_VOICE_TOKEN_FILE:-${HOME}/.codex-voice/control-token}"
 
 usage() {
-  print -u2 "Usage: control_mac_mini.sh status | system-volume 0..100 | voice-volume 0..100 | voice-speed slow|normal|fast|very-fast | voice-on | voice-off | stop"
+  print -u2 "Usage: control_mac_mini.sh status | volume 0..100 | voice-speed slow|normal|fast|very-fast | voice-on | voice-off | stop"
 }
 
 require_percentage() {
@@ -37,17 +37,9 @@ voice_control() {
 command="${1:-}"
 case "${command}" in
   status)
-    system_volume="$(/usr/bin/osascript -e 'use scripting additions' -e 'return output volume of (get volume settings)')"
-    print "Volume système du Mac mini : ${system_volume} %"
     voice_control state
     ;;
-  system-volume)
-    percentage="${2:-}"
-    require_percentage "${percentage}"
-    /usr/bin/osascript -e 'use scripting additions' -e "set volume output volume ${percentage}" >/dev/null
-    print "Volume système du Mac mini : ${percentage} %"
-    ;;
-  voice-volume)
+  volume|system-volume|voice-volume)
     percentage="${2:-}"
     require_percentage "${percentage}"
     normalized="$(/usr/bin/awk -v percent="${percentage}" 'BEGIN { printf "%.2f", percent / 100 }')"

@@ -92,7 +92,7 @@ private struct RemoteOptions {
       interrupt                Abandonne immédiatement toute la file audio
       enable | disable         Active ou désactive durablement la voix
       mute | unmute            Active ou retire la sourdine
-      volume 0...1             Règle le volume applicatif
+      volume 0...1             Règle le volume système du Mac
       rate 0.1...1             Règle la vitesse de lecture
       voice ID | automatic     Sélectionne une voix installée ou le choix système
 
@@ -139,7 +139,7 @@ private func printHumanReadable(_ message: VoiceControlMessage) {
     return
   }
   print(
-    "Voix active : \(state.voiceEnabled), muette : \(state.muted), volume : \(state.volume), vitesse : \(state.rate)"
+    "Voix active : \(state.voiceEnabled), muette : \(state.muted), volume système : \(state.volume), vitesse : \(state.rate)"
   )
   let selectedVoice = state.availableVoices?.first { $0.identifier == state.voiceIdentifier }
   print("Voix : \(selectedVoice?.name ?? "Automatique")")

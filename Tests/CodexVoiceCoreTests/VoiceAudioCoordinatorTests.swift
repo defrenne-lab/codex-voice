@@ -77,15 +77,13 @@ final class VoiceAudioCoordinatorTests: XCTestCase {
     XCTAssertEqual(coordinator.enqueue(unit(item: "three")), .started)
   }
 
-  func testVolumeRateAndVoiceAreClampedAndPersisted() throws {
+  func testRateAndVoiceAreClampedAndPersisted() throws {
     let driver = FakeSpeechDriver()
     let store = MemorySettingsStore()
     let coordinator = VoiceAudioCoordinator(driver: driver, settingsStore: store)
 
-    coordinator.setVolume(2)
     coordinator.setRate(0)
     coordinator.setVoiceIdentifier("  voice-id  ")
-    XCTAssertEqual(coordinator.settings.volume, 1)
     XCTAssertEqual(coordinator.settings.rate, 0.1)
     XCTAssertEqual(coordinator.settings.voiceIdentifier, "voice-id")
     XCTAssertEqual(try XCTUnwrap(store.saved.last).voiceIdentifier, "voice-id")

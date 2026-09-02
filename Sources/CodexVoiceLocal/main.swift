@@ -113,7 +113,7 @@ struct LocalOptions {
       --enable-voice         Active et mémorise la lecture automatique
       --disable-voice        Désactive immédiatement et mémorise cet état
       --mute | --unmute      Change la sourdine persistante
-      --volume 0...1         Règle le volume applicatif
+      --volume 0...1         Règle le volume système du Mac
       --rate 0.1...1         Règle la vitesse (0.48 par défaut)
       --voice IDENTIFIER     Sélectionne une voix macOS
       --system-voice         Revient à la voix française du système
@@ -136,11 +136,14 @@ struct LocalOptions {
 enum LocalCLIError: LocalizedError {
   case missingValue(String)
   case unknownArgument(String)
+  case systemVolumeUnavailable
 
   var errorDescription: String? {
     switch self {
     case .missingValue(let option): return "Valeur absente ou invalide pour \(option)."
     case .unknownArgument(let value): return "Argument inconnu : \(value)."
+    case .systemVolumeUnavailable:
+      return "Le volume système du périphérique de sortie ne peut pas être modifié."
     }
   }
 }
@@ -149,7 +152,7 @@ func describe(_ event: VoiceAudioCoordinatorEvent) -> String {
   switch event {
   case .settingsChanged(let settings):
     return
-      "réglages actif=\(settings.isEnabled) muet=\(settings.isMuted) volume=\(settings.volume) vitesse=\(settings.rate)"
+      "réglages actif=\(settings.isEnabled) muet=\(settings.isMuted) vitesse=\(settings.rate)"
   case .unitQueued(let unit):
     return "mise en file \(unit.kind.rawValue) caractères=\(unit.text.count)"
   case .unitStarted(let unit):
@@ -171,12 +174,16 @@ func runLocal() async throws {
     exit(0)
   }
 
-  let driver = MacOSSpeechDriver()
+  let pronunciationDictionary = PronunciationDictionary.current()
+  let driver = MacOSSpeechDriver(pronunciationDictionary: pronunciationDictionary)
+  let systemVolume = MacOSSystemVolumeController()
   let store = UserDefaultsVoiceAudioSettingsStore()
   let audio = VoiceAudioCoordinator(driver: driver, settingsStore: store)
   if let value = options.voiceEnabled { audio.setVoiceEnabled(value) }
   if let value = options.muted { audio.setMuted(value) }
-  if let value = options.volume { audio.setVolume(value) }
+  if let value = options.volume, !systemVolume.setVolume(value) {
+    throw LocalCLIError.systemVolumeUnavailable
+  }
   if let value = options.rate { audio.setRate(value) }
   if options.shouldSetVoiceIdentifier { audio.setVoiceIdentifier(options.voiceIdentifier) }
 
@@ -201,6 +208,8 @@ func runLocal() async throws {
     let service = VoiceControlService(
       authorizationToken: token,
       audio: audio,
+      systemVolume: systemVolume,
+      pronunciationDictionary: pronunciationDictionary,
       pendingResponseCount: { orchestrator.snapshot.pendingResponses.count },
       mainConversation: {
         let snapshot = orchestrator.snapshot
@@ -241,8 +250,9 @@ func runLocal() async throws {
 
   print("Codex Voice local")
   print(
-    "Voix active : \(audio.settings.isEnabled), muette : \(audio.settings.isMuted), volume : \(audio.settings.volume), vitesse : \(audio.settings.rate)"
+    "Voix active : \(audio.settings.isEnabled), muette : \(audio.settings.isMuted), volume système : \(systemVolume.volume), vitesse : \(audio.settings.rate)"
   )
+  print("Dictionnaire : \(pronunciationDictionary.fileURL.path)")
   print("Démarrage à la fin des journaux : aucun rattrapage audio")
   if options.controlServerEnabled {
     print("Contrôle local authentifié : 127.0.0.1:\(options.controlPort)")

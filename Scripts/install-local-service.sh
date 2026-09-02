@@ -8,6 +8,9 @@ SERVICE_LABEL="lab.defrenne.codexvoice3.local"
 APP_SUPPORT_DIR="${HOME}/Library/Application Support/Codex Voice 3"
 BIN_DIR="${APP_SUPPORT_DIR}/bin"
 LOG_DIR="${APP_SUPPORT_DIR}/logs"
+PRONUNCIATION_FILE="${APP_SUPPORT_DIR}/pronunciations.csv"
+LEGACY_PRONUNCIATION_FILE="${HOME}/Library/Application Support/Codex Voice 2/pronunciations.csv"
+PACKAGED_PRONUNCIATION_FILE="${PROJECT_DIR}/Dictionary/pronunciations.fr-FR.csv"
 LAUNCH_AGENTS_DIR="${HOME}/Library/LaunchAgents"
 PLIST_PATH="${LAUNCH_AGENTS_DIR}/${SERVICE_LABEL}.plist"
 INSTALLED_BINARY="${BIN_DIR}/codex-voice-local"
@@ -24,6 +27,16 @@ swift build -c release --product codex-voice-remote
 /bin/chmod 755 "${INSTALLED_BINARY}"
 /bin/chmod 755 "${INSTALLED_CONTROL_BINARY}"
 /bin/cp "Resources/${SERVICE_LABEL}.plist" "${PLIST_PATH}"
+
+if [[ ! -f "${PRONUNCIATION_FILE}" ]]; then
+  if [[ -f "${LEGACY_PRONUNCIATION_FILE}" ]]; then
+    /bin/cp "${LEGACY_PRONUNCIATION_FILE}" "${PRONUNCIATION_FILE}"
+    print "Dictionnaire V2 migré : ${PRONUNCIATION_FILE}"
+  else
+    /bin/cp "${PACKAGED_PRONUNCIATION_FILE}" "${PRONUNCIATION_FILE}"
+    print "Dictionnaire installé : ${PRONUNCIATION_FILE}"
+  fi
+fi
 
 /usr/bin/plutil -replace ProgramArguments -json "[\"${INSTALLED_BINARY}\",\"--forever\"]" "${PLIST_PATH}"
 /usr/bin/plutil -replace StandardOutPath -string "${LOG_DIR}/service.log" "${PLIST_PATH}"
@@ -49,4 +62,5 @@ fi
 print "Service installé : ${SERVICE_LABEL}"
 print "Binaire : ${INSTALLED_BINARY}"
 print "Contrôleur : ${INSTALLED_CONTROL_BINARY}"
+print "Dictionnaire : ${PRONUNCIATION_FILE}"
 print "Logs : ${LOG_DIR}"

@@ -24,8 +24,9 @@ V3 is a clean Swift rewrite shaped by several months of daily use. Its product r
 
 - Native macOS menu-bar controller with a compact blue halo.
 - Global, passive Option-key observation for immediate remote interruption.
-- Voice on/off, app-level volume and stop controls.
+- Voice on/off, actual Mac mini system volume and stop controls.
 - Remote selection of the installed high-quality Thomas or Aurélie voice and the four proven V2 speeds.
+- A pronunciation dictionary editable from the MacBook in TextEdit and synchronized to the Mac mini.
 - Live authenticated state over a persistent WebSocket connection.
 - Localhost-only control service reached through an SSH tunnel managed by the MacBook app.
 - macOS `AVSpeechSynthesizer` output on the Mac that runs Codex.
@@ -44,11 +45,11 @@ Codex Voice is split into two small applications:
 1. **Voice Local** runs beside Codex on the Mac mini. It follows Codex session data, decides what is eligible to speak, owns the audio queue and exposes a narrowly scoped control API on `127.0.0.1`.
 2. **Voice Remote** lives in the MacBook menu bar. It reaches that API through SSH, displays the live state and turns Option into a universal “I am speaking now” command.
 
-The controller never receives the text being read. Remote state contains only operational metadata such as voice state, volume, task title, reading kind and queue counts. The Codex App Server is never exposed on the network.
+The controller never receives the text being read. Remote state contains only operational metadata such as voice state, system volume, task title, reading kind and queue counts. The pronunciation dictionary crosses the control channel only when the user explicitly opens or saves it. The Codex App Server is never exposed on the network.
 
 ### Conversational Mac mini control
 
-The repository includes the `piloter-le-mac-mini` Codex skill. Once copied to `~/.codex/skills`, it lets a Codex conversation running on the Mac mini inspect audio state, change system or voice volume, select one of the four proven speech speeds, enable or disable speech, and stop the current audio queue. This is especially useful when the conversation is controlled from an iPad.
+The repository includes the `piloter-le-mac-mini` Codex skill. Once copied to `~/.codex/skills`, it lets a Codex conversation running on the Mac mini inspect audio state, change the Mac mini system volume, select one of the four proven speech speeds, enable or disable speech, and stop the current audio queue. This is especially useful when the conversation is controlled from an iPad.
 
 ```bash
 cp -R skills/piloter-le-mac-mini ~/.codex/skills/
@@ -113,7 +114,8 @@ Because v0.1 is not notarized, macOS may ask you to confirm the first launch thr
 - Click anywhere outside the popover to dismiss it.
 - Press Option while audio is playing to abandon the current reading and its queued fragments.
 - Switch **Voix active** off before leaving long-running overnight tasks.
-- Adjust the voice volume independently of the Mac mini's physical controls.
+- Adjust the actual Mac mini output volume with the volume slider.
+- Open **Dictionnaire** to edit pronunciations in TextEdit. Saving synchronizes the live file to the Mac mini.
 - Right-click the halo to quit the MacBook controller.
 
 An interruption is not a pause: speech never resumes automatically. The full answer remains visible in Codex.
@@ -134,7 +136,24 @@ CODEX_VOICE_SIGNING_IDENTITY="<certificate name or SHA-1>" Scripts/package-remot
 
 For repeatable releases, that value may instead be stored as the only line of the gitignored `.signing-identity.local` file on the build Mac. The file contains an identity reference, not the private key; the key remains protected by the macOS Keychain.
 
-The package script creates a versioned disk image such as `.build/Codex-Voice-3-v0.1.6-macOS.dmg` and a matching SHA-256 file. The DMG contains the signed application and an Applications shortcut, making the installed version explicit before the image is opened. The project currently has 55 automated tests around ingestion, task-title updates, ordering, orchestration, audio coordination, authentication, remote settings, SSH configuration, deduplication and token permissions.
+The package script creates a versioned disk image such as `.build/Codex-Voice-3-v0.1.7-macOS.dmg` and a matching SHA-256 file. The DMG contains the signed application and an Applications shortcut, making the installed version explicit before the image is opened. The project currently has 62 automated tests around ingestion, task-title updates, ordering, orchestration, audio coordination, authentication, remote settings, pronunciation handling, SSH configuration, deduplication and token permissions.
+
+## Pronunciation dictionary and GitHub
+
+The live dictionary belongs to the Mac mini runtime and remains mutable across application updates:
+
+```text
+~/Library/Application Support/Codex Voice 3/pronunciations.csv
+```
+
+[`Dictionary/pronunciations.fr-FR.csv`](Dictionary/pronunciations.fr-FR.csv) is a separate public snapshot: it provides a useful default for a fresh installation and a durable, versioned reference. The app deliberately does not commit to GitHub. When the live dictionary is worth preserving, refresh the repository copy explicitly, review it for private data, then commit it:
+
+```shell
+Scripts/snapshot-pronunciation-dictionary.sh
+git diff -- Dictionary/pronunciations.fr-FR.csv
+```
+
+This keeps GitHub useful as a lightweight reference store without making source control part of the runtime or requiring a GitHub credential inside the app.
 
 ## Security model
 
@@ -142,6 +161,7 @@ The package script creates a versioned disk image such as `.build/Codex-Voice-3-
 - Plain WebSockets are accepted only for localhost; non-local endpoints must use TLS.
 - A random 256-bit bearer token is created locally with `0700` directory and `0600` file permissions.
 - The token, transcripts and diagnostic state are never part of the release archive.
+- The public reference dictionary is reviewed and committed explicitly; the mutable runtime file is not uploaded automatically.
 - The SSH target is read from the MacBook's private `~/.codex-voice/.env`, validated before it becomes a process argument, and never included in the release.
 - The managed SSH process accepts key-based authentication only and forwards loopback port `48731` to the same loopback port on the Mac mini.
 - Published updates are signed with the same persistent identity from v0.1.5 onward, avoiding a new privacy identity for every binary revision.

@@ -59,6 +59,7 @@ final class VoiceControlServiceTests: XCTestCase {
     XCTAssertEqual(muted.message.state?.muted, true)
     XCTAssertEqual(muted.message.state?.pendingResponseCount, 3)
     XCTAssertEqual(muted.message.state?.availableVoices, testVoices)
+    XCTAssertEqual(fixture.systemVolume.volume, 0.35)
   }
 
   func testRateAndVoiceCommandsRejectInvalidValues() {
@@ -83,7 +84,7 @@ final class VoiceControlServiceTests: XCTestCase {
 
     XCTAssertEqual(duplicate.message.status, .duplicate)
     XCTAssertEqual(duplicate.message.actionPerformed, false)
-    XCTAssertEqual(fixture.coordinator.settings.volume, 0.7)
+    XCTAssertEqual(fixture.systemVolume.volume, 0.7)
   }
 
   func testRemoteInterruptAbandonsCurrentUnitAndQueue() {
@@ -125,19 +126,71 @@ final class VoiceControlServiceTests: XCTestCase {
     XCTAssertNil(state.currentAudio)
     XCTAssertEqual(state.mainConversation, mainConversation)
   }
+
+  func testPronunciationDictionaryCanBeReadAndUpdated() {
+    let fixture = makeFixture(dictionaryContent: "source,replacement\nGitHub,Guit-Heub\n")
+
+    let read = fixture.service.handle(
+      request(sequence: 1, command: .getPronunciationDictionary)
+    )
+    let updatedContent = "source,replacement\nShopify,shopifaille\n"
+    let update = fixture.service.handle(
+      request(sequence: 2, command: .setPronunciationDictionary(updatedContent))
+    )
+
+    XCTAssertEqual(
+      read.message.pronunciationDictionary?.content,
+      "source,replacement\nGitHub,Guit-Heub\n"
+    )
+    XCTAssertEqual(update.message.status, .ok)
+    XCTAssertEqual(update.message.actionPerformed, true)
+    XCTAssertEqual(fixture.dictionary.content, updatedContent)
+  }
+
+  func testUnauthorizedDictionaryRequestNeverExposesItsContent() throws {
+    let fixture = makeFixture(dictionaryContent: "source,replacement\nSecret,private\n")
+    let result = fixture.service.handle(
+      request(
+        sequence: 1,
+        authorization: "incorrect",
+        command: .getPronunciationDictionary
+      )
+    )
+    let json = String(decoding: try JSONEncoder().encode(result.message), as: UTF8.self)
+
+    XCTAssertFalse(result.isAuthenticated)
+    XCTAssertNil(result.message.pronunciationDictionary)
+    XCTAssertFalse(json.contains("Secret"))
+  }
+
+  func testSystemVolumeFailureRejectsCommandWithoutChangingReportedVolume() {
+    let fixture = makeFixture()
+    fixture.systemVolume.allowsChanges = false
+
+    let result = fixture.service.handle(request(sequence: 1, command: .setVolume(0.2)))
+
+    XCTAssertEqual(result.message.status, .rejected)
+    XCTAssertEqual(result.message.error?.code, "systemVolumeUnavailable")
+    XCTAssertEqual(fixture.service.state.volume, 0.8)
+  }
 }
 
 @MainActor
 private func makeFixture(
   enabled: Bool = false,
   pendingResponseCount: Int = 0,
-  mainConversation: VoiceControlConversation? = nil
+  mainConversation: VoiceControlConversation? = nil,
+  dictionaryContent: String = "source,replacement\n"
 ) -> (
   service: VoiceControlService,
   coordinator: VoiceAudioCoordinator,
-  driver: ControlFakeSpeechDriver
+  driver: ControlFakeSpeechDriver,
+  systemVolume: ControlFakeSystemVolume,
+  dictionary: ControlFakePronunciationDictionary
 ) {
   let driver = ControlFakeSpeechDriver()
+  let systemVolume = ControlFakeSystemVolume()
+  let dictionary = ControlFakePronunciationDictionary(content: dictionaryContent)
   let coordinator = VoiceAudioCoordinator(
     driver: driver,
     defaultSettings: VoiceAudioSettings(isEnabled: enabled)
@@ -145,11 +198,13 @@ private func makeFixture(
   let service = VoiceControlService(
     authorizationToken: token,
     audio: coordinator,
+    systemVolume: systemVolume,
+    pronunciationDictionary: dictionary,
     pendingResponseCount: { pendingResponseCount },
     mainConversation: { mainConversation },
     availableVoices: { testVoices }
   )
-  return (service, coordinator, driver)
+  return (service, coordinator, driver, systemVolume, dictionary)
 }
 
 private let token = String(repeating: "a", count: 64)
@@ -204,5 +259,32 @@ private final class ControlFakeSpeechDriver: VoiceSpeechDriver {
 
   func stop() {
     stopCalls += 1
+  }
+}
+
+@MainActor
+private final class ControlFakeSystemVolume: VoiceSystemVolumeControlling {
+  var volume: Float = 0.8
+  var allowsChanges = true
+
+  func setVolume(_ volume: Float) -> Bool {
+    guard allowsChanges else { return false }
+    self.volume = min(1, max(0, volume))
+    return true
+  }
+}
+
+@MainActor
+private final class ControlFakePronunciationDictionary: VoicePronunciationDictionaryManaging {
+  var content: String
+
+  init(content: String) {
+    self.content = content
+  }
+
+  func loadContent() throws -> String { content }
+
+  func replaceContent(_ content: String) throws {
+    self.content = content
   }
 }
