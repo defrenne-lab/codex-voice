@@ -78,7 +78,7 @@ launchctl print "gui/$(id -u)/lab.defrenne.codexvoice3.local"
 
 ### 2. Install Voice Remote on the MacBook
 
-Download `Codex-Voice-3-macOS.zip` from the [latest release](https://github.com/defrenne-lab/codex-voice/releases/latest), expand it, and move **Codex Voice 3.app** to `~/Applications` or `/Applications`.
+Download the versioned `Codex-Voice-3-vX.Y.Z-macOS.dmg` image from the [latest release](https://github.com/defrenne-lab/codex-voice/releases/latest), open it, then drag **Codex Voice 3.app** onto the **Applications** shortcut.
 
 Copy the private control token once, replacing the placeholders with the SSH account and hostname of the Mac mini:
 
@@ -134,7 +134,7 @@ CODEX_VOICE_SIGNING_IDENTITY="<certificate name or SHA-1>" Scripts/package-remot
 
 For repeatable releases, that value may instead be stored as the only line of the gitignored `.signing-identity.local` file on the build Mac. The file contains an identity reference, not the private key; the key remains protected by the macOS Keychain.
 
-The package script creates `.build/Codex-Voice-3-macOS.zip` and a matching SHA-256 file. A macOS `.app` is a directory bundle rather than a single downloadable file, so the ZIP preserves the bundle correctly with fewer installation prompts than a DMG or PKG at this stage. The project currently has 55 automated tests around ingestion, task-title updates, ordering, orchestration, audio coordination, authentication, remote settings, SSH configuration, deduplication and token permissions.
+The package script creates a versioned disk image such as `.build/Codex-Voice-3-v0.1.6-macOS.dmg` and a matching SHA-256 file. The DMG contains the signed application and an Applications shortcut, making the installed version explicit before the image is opened. The project currently has 55 automated tests around ingestion, task-title updates, ordering, orchestration, audio coordination, authentication, remote settings, SSH configuration, deduplication and token permissions.
 
 ## Security model
 
