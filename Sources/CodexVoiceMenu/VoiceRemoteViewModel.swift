@@ -39,6 +39,7 @@ final class VoiceRemoteViewModel: ObservableObject {
   @Published private(set) var voiceIdentifier: String?
   @Published private(set) var availableVoices: [VoiceControlVoice] = []
   @Published private(set) var currentAudio: VoiceControlCurrentAudio?
+  @Published private(set) var mainConversation: VoiceControlConversation?
   @Published private(set) var queuedUnitCount = 0
   @Published private(set) var optionMonitoringAuthorized = false
   @Published private(set) var lastError: String?
@@ -74,8 +75,12 @@ final class VoiceRemoteViewModel: ObservableObject {
   }
 
   var readingTitle: String {
-    guard let currentAudio else { return "Aucune conversation en lecture" }
-    return currentAudio.threadTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+    if let currentAudio {
+      return currentAudio.threadTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        .nilIfEmpty ?? "Conversation Codex"
+    }
+    guard let mainConversation else { return "Aucune conversation principale" }
+    return mainConversation.threadTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
       .nilIfEmpty ?? "Conversation Codex"
   }
 
@@ -139,6 +144,11 @@ final class VoiceRemoteViewModel: ObservableObject {
           kind: .finalAnswer,
           text: "Aperçu sans lecture audio."
         )
+      )
+      mainConversation = VoiceControlConversation(
+        threadID: "preview-thread",
+        turnID: "preview-turn",
+        threadTitle: "Améliorer la fusion"
       )
       optionMonitoringAuthorized = true
       return
@@ -290,6 +300,7 @@ final class VoiceRemoteViewModel: ObservableObject {
     voiceIdentifier = state.voiceIdentifier
     if let voices = state.availableVoices { availableVoices = voices }
     currentAudio = state.currentAudio
+    mainConversation = state.mainConversation
     queuedUnitCount = state.queuedUnitCount
   }
 

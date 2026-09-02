@@ -4,12 +4,14 @@ public enum CodexEventOrigin: String, Sendable {
   case jsonlLifecycle
   case jsonlCompletedItem
   case jsonlResponseItem
+  case sessionIndex
   case appServerSnapshot
 }
 
 public enum CodexEventAuthority: Int, Comparable, Sendable {
   case jsonlFallback = 10
   case jsonlCompleted = 20
+  case sessionIndex = 25
   case appServerSnapshot = 30
 
   public static func < (lhs: Self, rhs: Self) -> Bool {

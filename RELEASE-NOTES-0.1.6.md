@@ -1,0 +1,15 @@
+# Codex Voice 3 v0.1.6
+
+Persistent main-task context and more natural menu behavior.
+
+## Added
+
+- When speech finishes, the menu now keeps showing the main Codex task beneath **En attente**.
+- Task names are refreshed from Codex's lightweight local session index, including later renames, without querying or exposing the App Server.
+
+## Improved
+
+- Clicking outside the menu popover now closes it while preserving Codex keyboard focus.
+- The remote protocol carries main-task metadata without carrying message text.
+
+Both the Mac mini service and the MacBook controller must be updated for the main-task display. The release remains a ZIP because a macOS `.app` is a directory bundle; GitHub cannot distribute it directly as one file, while DMG and PKG packaging would add more installation steps at this stage.

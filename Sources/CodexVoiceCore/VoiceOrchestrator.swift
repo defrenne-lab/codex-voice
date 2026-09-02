@@ -200,6 +200,7 @@ public final class VoiceOrchestrator {
     let observed = ingestion.observation
     let isLiveObservation =
       observed.origin != .appServerSnapshot
+      && observed.origin != .sessionIndex
       && handledLiveIdentities.insert(observed.identityKey).inserted
 
     guard ingestion.stateChanged || isLiveObservation else { return [] }

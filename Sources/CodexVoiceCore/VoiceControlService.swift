@@ -15,6 +15,7 @@ public final class VoiceControlService {
   private let authorizationToken: String
   private let audio: VoiceAudioCoordinator
   private let pendingResponseCount: () -> Int
+  private let mainConversation: () -> VoiceControlConversation?
   private let availableVoices: () -> [VoiceControlVoice]
   private var lastSequenceByClientID: [String: UInt64] = [:]
 
@@ -22,11 +23,13 @@ public final class VoiceControlService {
     authorizationToken: String,
     audio: VoiceAudioCoordinator,
     pendingResponseCount: @escaping () -> Int = { 0 },
+    mainConversation: @escaping () -> VoiceControlConversation? = { nil },
     availableVoices: @escaping () -> [VoiceControlVoice] = { [] }
   ) {
     self.authorizationToken = authorizationToken
     self.audio = audio
     self.pendingResponseCount = pendingResponseCount
+    self.mainConversation = mainConversation
     self.availableVoices = availableVoices
   }
 
@@ -34,6 +37,7 @@ public final class VoiceControlService {
     VoiceControlState(
       audio: audio.snapshot,
       pendingResponseCount: pendingResponseCount(),
+      mainConversation: mainConversation(),
       availableVoices: availableVoices()
     )
   }

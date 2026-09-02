@@ -111,12 +111,27 @@ final class VoiceControlServiceTests: XCTestCase {
     XCTAssertEqual(message.state?.currentAudio?.threadID, "thread-1")
     XCTAssertFalse(json.contains("contenu confidentiel"))
   }
+
+  func testPublishedStateKeepsMainConversationWhileAudioIsIdle() {
+    let mainConversation = VoiceControlConversation(
+      threadID: "thread-main",
+      turnID: "turn-main",
+      threadTitle: "Améliorer la fusion"
+    )
+    let fixture = makeFixture(mainConversation: mainConversation)
+
+    let state = fixture.service.state
+
+    XCTAssertNil(state.currentAudio)
+    XCTAssertEqual(state.mainConversation, mainConversation)
+  }
 }
 
 @MainActor
 private func makeFixture(
   enabled: Bool = false,
-  pendingResponseCount: Int = 0
+  pendingResponseCount: Int = 0,
+  mainConversation: VoiceControlConversation? = nil
 ) -> (
   service: VoiceControlService,
   coordinator: VoiceAudioCoordinator,
@@ -131,6 +146,7 @@ private func makeFixture(
     authorizationToken: token,
     audio: coordinator,
     pendingResponseCount: { pendingResponseCount },
+    mainConversation: { mainConversation },
     availableVoices: { testVoices }
   )
   return (service, coordinator, driver)

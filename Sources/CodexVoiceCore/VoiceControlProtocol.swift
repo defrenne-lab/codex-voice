@@ -97,6 +97,18 @@ public struct VoiceControlCurrentAudio: Codable, Equatable, Sendable {
   }
 }
 
+public struct VoiceControlConversation: Codable, Equatable, Sendable {
+  public let threadID: String
+  public let turnID: String
+  public let threadTitle: String?
+
+  public init(threadID: String, turnID: String, threadTitle: String?) {
+    self.threadID = threadID
+    self.turnID = turnID
+    self.threadTitle = threadTitle
+  }
+}
+
 public struct VoiceControlVoice: Codable, Equatable, Identifiable, Sendable {
   public let identifier: String
   public let name: String
@@ -119,12 +131,14 @@ public struct VoiceControlState: Codable, Equatable, Sendable {
   public let voiceIdentifier: String?
   public let availableVoices: [VoiceControlVoice]?
   public let currentAudio: VoiceControlCurrentAudio?
+  public let mainConversation: VoiceControlConversation?
   public let queuedUnitCount: Int
   public let pendingResponseCount: Int
 
   public init(
     audio: VoiceAudioSnapshot,
     pendingResponseCount: Int,
+    mainConversation: VoiceControlConversation? = nil,
     availableVoices: [VoiceControlVoice] = []
   ) {
     voiceEnabled = audio.settings.isEnabled
@@ -134,6 +148,7 @@ public struct VoiceControlState: Codable, Equatable, Sendable {
     voiceIdentifier = audio.settings.voiceIdentifier
     self.availableVoices = availableVoices
     currentAudio = audio.currentUnit.map(VoiceControlCurrentAudio.init)
+    self.mainConversation = mainConversation
     queuedUnitCount = audio.queuedUnitCount
     self.pendingResponseCount = max(0, pendingResponseCount)
   }

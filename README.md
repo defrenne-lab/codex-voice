@@ -30,6 +30,7 @@ V3 is a clean Swift rewrite shaped by several months of daily use. Its product r
 - Localhost-only control service reached through an SSH tunnel managed by the MacBook app.
 - macOS `AVSpeechSynthesizer` output on the Mac that runs Codex.
 - Multi-task ingestion, deduplication and main-conversation selection.
+- The menu keeps the main Codex task visible after its audio finishes.
 - Non-preemptive audio queue: another Codex task cannot cut in.
 - Persistent safe defaults: a new installation starts silent and re-enabling voice never replays an old backlog.
 - A user LaunchAgent installer for the headless Mac; no administrator account required.
@@ -109,6 +110,7 @@ Because v0.1 is not notarized, macOS may ask you to confirm the first launch thr
 ## Using it
 
 - Left-click the halo to open controls.
+- Click anywhere outside the popover to dismiss it.
 - Press Option while audio is playing to abandon the current reading and its queued fragments.
 - Switch **Voix active** off before leaving long-running overnight tasks.
 - Adjust the voice volume independently of the Mac mini's physical controls.
@@ -132,7 +134,7 @@ CODEX_VOICE_SIGNING_IDENTITY="<certificate name or SHA-1>" Scripts/package-remot
 
 For repeatable releases, that value may instead be stored as the only line of the gitignored `.signing-identity.local` file on the build Mac. The file contains an identity reference, not the private key; the key remains protected by the macOS Keychain.
 
-The package script creates `.build/Codex-Voice-3-macOS.zip` and a matching SHA-256 file. The project currently has 53 automated tests around ingestion, ordering, orchestration, audio coordination, authentication, remote settings, SSH configuration, deduplication and token permissions.
+The package script creates `.build/Codex-Voice-3-macOS.zip` and a matching SHA-256 file. A macOS `.app` is a directory bundle rather than a single downloadable file, so the ZIP preserves the bundle correctly with fewer installation prompts than a DMG or PKG at this stage. The project currently has 55 automated tests around ingestion, task-title updates, ordering, orchestration, audio coordination, authentication, remote settings, SSH configuration, deduplication and token permissions.
 
 ## Security model
 

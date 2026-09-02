@@ -186,6 +186,10 @@ func runLocal() async throws {
     maximumTrackedFiles: options.maximumFiles,
     includedThreadIDs: options.threadIDs
   )
+  let titleSource = SessionIndexThreadEventSource(
+    fileURL: options.sessionsRoot.deletingLastPathComponent()
+      .appendingPathComponent("session_index.jsonl", isDirectory: false)
+  )
   let composite = CompositeCodexEventSource()
   let orchestrator = VoiceOrchestrator()
   let controlServer: VoiceControlWebSocketServer?
@@ -198,6 +202,15 @@ func runLocal() async throws {
       authorizationToken: token,
       audio: audio,
       pendingResponseCount: { orchestrator.snapshot.pendingResponses.count },
+      mainConversation: {
+        let snapshot = orchestrator.snapshot
+        guard let main = snapshot.mainConversation else { return nil }
+        return VoiceControlConversation(
+          threadID: main.threadID,
+          turnID: main.turnID,
+          threadTitle: snapshot.threads.first { $0.threadID == main.threadID }?.title
+        )
+      },
       availableVoices: { installedVoices }
     )
     let server = VoiceControlWebSocketServer(service: service)
@@ -239,17 +252,27 @@ func runLocal() async throws {
   var observedEvents = 0
   var requestedUnits = 0
   var diagnostics = 0
+  var nextTitlePoll = Date.distantPast
   let deadline = Date().addingTimeInterval(options.watchSeconds)
   repeat {
+    let now = Date()
+    let titleBatch: CodexEventBatch
+    if now >= nextTitlePoll {
+      titleBatch = titleSource.poll()
+      nextTitlePoll = now.addingTimeInterval(1)
+    } else {
+      titleBatch = CodexEventBatch()
+    }
     let batch = try source.poll()
-    observedEvents += batch.events.count
-    diagnostics += batch.diagnostics.count
-    for ingestion in composite.ingest(batch.events) {
+    let events = titleBatch.events + batch.events
+    observedEvents += events.count
+    diagnostics += titleBatch.diagnostics.count + batch.diagnostics.count
+    for ingestion in composite.ingest(events) {
       for effect in orchestrator.process(ingestion) {
         if audio.handle(effect) != nil { requestedUnits += 1 }
       }
     }
-    if !batch.events.isEmpty { controlServer?.publishState() }
+    if !events.isEmpty { controlServer?.publishState() }
 
     if options.runForever || Date() < deadline {
       try await Task.sleep(

@@ -20,11 +20,12 @@ final class CodexVoiceAppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @MainActor
-private final class VoiceRemoteStatusItemController: NSObject {
+private final class VoiceRemoteStatusItemController: NSObject, NSPopoverDelegate {
   static let shared = VoiceRemoteStatusItemController()
 
   private var statusItem: NSStatusItem?
   private var popover: NSPopover?
+  private var outsideClickMonitor: Any?
   private var previouslyActiveApplication: NSRunningApplication?
   private var cancellables: Set<AnyCancellable> = []
 
@@ -49,6 +50,7 @@ private final class VoiceRemoteStatusItemController: NSObject {
     let popover = NSPopover()
     popover.behavior = .transient
     popover.animates = true
+    popover.delegate = self
     popover.contentViewController = hostingController
     let fittingSize = hostingController.view.fittingSize
     popover.contentSize = NSSize(width: 340, height: max(1, fittingSize.height))
@@ -125,6 +127,24 @@ private final class VoiceRemoteStatusItemController: NSObject {
     DispatchQueue.main.async { [weak self] in
       self?.restorePreviousApplicationIfNeeded()
     }
+  }
+
+  func popoverDidShow(_ notification: Notification) {
+    guard outsideClickMonitor == nil else { return }
+    outsideClickMonitor = NSEvent.addGlobalMonitorForEvents(
+      matching: [.leftMouseDown, .rightMouseDown]
+    ) { [weak self] _ in
+      DispatchQueue.main.async { [weak self] in
+        guard self?.popover?.isShown == true else { return }
+        self?.popover?.performClose(nil)
+      }
+    }
+  }
+
+  func popoverDidClose(_ notification: Notification) {
+    guard let outsideClickMonitor else { return }
+    NSEvent.removeMonitor(outsideClickMonitor)
+    self.outsideClickMonitor = nil
   }
 
   private func restorePreviousApplicationIfNeeded() {
