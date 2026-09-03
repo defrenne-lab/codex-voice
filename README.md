@@ -1,5 +1,9 @@
 # Codex Voice 3
 
+<p align="center">
+  <img src="Design/CodexVoice3-AppIcon.png" width="128" alt="Codex Voice 3 app icon combining the blue halo with a white speaker">
+</p>
+
 **Push-to-talk for Codex when the work runs on another Mac.**
 
 Codex Voice 3 turns a headless Mac mini into the voice side of a Codex session while a MacBook remains the control surface. Codex speaks through macOS text-to-speech; pressing Option on the MacBook immediately stops the remote audio so the user can talk again.
@@ -36,6 +40,7 @@ V3 is a clean Swift rewrite shaped by several months of daily use. Its product r
 - Non-preemptive audio queue: another Codex task cannot cut in.
 - Persistent safe defaults: a new installation starts silent and re-enabling voice never replays an old backlog.
 - A user LaunchAgent installer for the headless Mac; no administrator account required.
+- A guided **Install and Replace** update flow when the MacBook app is opened from its DMG.
 
 The first public release is an Apple Silicon developer preview for macOS 13 or later. Starting with v0.1.5, release archives use a stable Apple Development signature so macOS can recognize updates as the same app. They are not Developer ID signed or notarized yet.
 
@@ -80,7 +85,7 @@ launchctl print "gui/$(id -u)/lab.defrenne.codexvoice3.local"
 
 ### 2. Install Voice Remote on the MacBook
 
-Download the versioned `Codex-Voice-3-vX.Y.Z-macOS.dmg` image from the [latest release](https://github.com/defrenne-lab/codex-voice/releases/latest), open it, then drag **Codex Voice 3.app** onto the **Applications** shortcut.
+Download the versioned `Codex-Voice-3-vX.Y.Z-macOS.dmg` image from the [latest release](https://github.com/defrenne-lab/codex-voice/releases/latest), then open **Codex Voice 3** from the DMG. The app offers to install itself in Applications, replace the previous version and relaunch the installed copy. Dragging it manually onto the Applications shortcut remains available as a fallback.
 
 Copy the private control token once, replacing the placeholders with the SSH account and hostname of the Mac mini:
 
@@ -107,7 +112,7 @@ Launch **Codex Voice 3**. It starts the localhost SSH tunnel, keeps it alive and
 
 On first use, macOS may request Input Monitoring permission. The app observes Option without consuming or modifying the event, so Codex still receives its normal push-to-talk shortcut.
 
-Because v0.1 is not notarized, macOS may ask you to confirm the first launch through Finder. Always verify that the archive came from this repository and compare its published SHA-256 checksum before opening it.
+Because v0.1 is not notarized, macOS may ask you to confirm the first launch through Finder before the guided installer can appear. Always verify that the archive came from this repository and compare its published SHA-256 checksum before opening it.
 
 ## Using it
 
@@ -138,7 +143,7 @@ CODEX_VOICE_SIGNING_IDENTITY="<certificate name or SHA-1>" Scripts/package-remot
 
 For repeatable releases, that value may instead be stored as the only line of the gitignored `.signing-identity.local` file on the build Mac. The file contains an identity reference, not the private key; the key remains protected by the macOS Keychain.
 
-The package script creates a versioned disk image such as `.build/Codex-Voice-3-v0.1.8-macOS.dmg` and a matching SHA-256 file. The DMG contains the signed application and an Applications shortcut, making the installed version explicit before the image is opened. The project currently has 63 automated tests around ingestion, task-title updates, ordering, orchestration, audio coordination, authentication, remote settings, pronunciation handling, SSH configuration, deduplication and token permissions.
+The package script creates a versioned disk image such as `.build/Codex-Voice-3-v0.1.9-macOS.dmg` and a matching SHA-256 file. The DMG contains the signed application, which offers guided installation, plus an Applications shortcut as a manual fallback. The project currently has 67 automated tests around ingestion, task-title updates, ordering, orchestration, audio coordination, authentication, remote settings, pronunciation handling, SSH configuration, installation, deduplication and token permissions.
 
 ## Pronunciation dictionary and GitHub
 

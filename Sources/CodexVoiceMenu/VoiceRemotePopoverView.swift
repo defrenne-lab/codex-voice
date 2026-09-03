@@ -315,33 +315,65 @@ struct VoiceHaloIcon: View {
 
   var body: some View {
     ZStack {
+      if state == .active {
+        Circle()
+          .fill(accentColor.opacity(0.22))
+          .frame(width: 22, height: 22)
+      }
+
       Circle()
-        .fill(color.opacity(state == .active ? 0.24 : 0.12))
-        .frame(width: 28, height: 28)
-        .blur(radius: 3.5)
-      Circle()
-        .fill(color.opacity(state == .active ? 0.28 : 0.14))
-        .frame(width: 21, height: 21)
-      Circle()
-        .fill(color)
-        .frame(width: 16, height: 16)
-        .shadow(color: color.opacity(state == .active ? 0.9 : 0.25), radius: 4)
-      Circle()
-        .fill(Color.white.opacity(state == .active ? 0.65 : 0.3))
-        .frame(width: 4, height: 4)
-        .offset(x: -3, y: -3)
+        .fill(coreColor)
+        .frame(width: 18, height: 18)
+        .overlay {
+          Circle()
+            .stroke(borderColor, lineWidth: state == .disconnected ? 1.5 : 0.7)
+        }
+        .shadow(
+          color: accentColor.opacity(state == .active ? 0.85 : 0.2),
+          radius: state == .active ? 2.5 : 1
+        )
+
+      Image(systemName: symbolName)
+        .font(.system(size: 8.5, weight: .semibold))
+        .symbolRenderingMode(.monochrome)
+        .foregroundStyle(symbolColor)
+        .offset(x: 0.25)
     }
     .frame(width: 30, height: 22)
     .fixedSize()
     .accessibilityLabel(accessibilityLabel)
   }
 
-  private var color: Color {
+  private var accentColor: Color {
     switch state {
     case .active: return Color(red: 0.13, green: 0.49, blue: 1)
     case .inactive: return .secondary
     case .disconnected: return .orange
     }
+  }
+
+  private var coreColor: Color {
+    switch state {
+    case .active: return Color(red: 0.08, green: 0.39, blue: 0.92)
+    case .inactive: return Color.secondary.opacity(0.62)
+    case .disconnected: return Color.secondary.opacity(0.32)
+    }
+  }
+
+  private var borderColor: Color {
+    switch state {
+    case .active: return Color.white.opacity(0.22)
+    case .inactive: return Color.white.opacity(0.12)
+    case .disconnected: return .orange
+    }
+  }
+
+  private var symbolColor: Color {
+    state == .disconnected ? .orange : Color.white.opacity(state == .active ? 1 : 0.74)
+  }
+
+  private var symbolName: String {
+    state == .active ? "speaker.wave.2.fill" : "speaker.slash.fill"
   }
 
   private var accessibilityLabel: String {

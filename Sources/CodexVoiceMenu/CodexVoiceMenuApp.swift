@@ -9,6 +9,10 @@ final class CodexVoiceAppDelegate: NSObject, NSApplicationDelegate {
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApplication.shared.setActivationPolicy(.accessory)
+    if ApplicationInstaller.offerInstallationIfNeeded() {
+      Self.launchHandler = nil
+      return
+    }
     Self.launchHandler?()
     Self.launchHandler = nil
   }
@@ -190,6 +194,7 @@ struct CodexVoiceMenuApp: App {
     }
     Task { @MainActor in
       try? await Task.sleep(nanoseconds: 500_000_000)
+      guard !ApplicationInstaller.isInstalling else { return }
       VoiceRemoteStatusItemController.shared.install(model: model)
       model.start()
     }

@@ -45,6 +45,28 @@ final class VoiceAudioCoordinatorTests: XCTestCase {
     XCTAssertEqual(coordinator.enqueue(unit(turn: "turn-2", item: "four")), .started)
   }
 
+  func testInterruptAllowsFreshInteractionInsideSameCodexTurn() {
+    let driver = FakeSpeechDriver()
+    let coordinator = enabledCoordinator(driver: driver)
+    _ = coordinator.enqueue(
+      unit(group: "interaction|thread-1|turn-1|user-one", turn: "turn-1", item: "one")
+    )
+
+    XCTAssertTrue(coordinator.interrupt())
+    XCTAssertEqual(
+      coordinator.enqueue(
+        unit(group: "interaction|thread-1|turn-1|user-one", turn: "turn-1", item: "late")
+      ),
+      .ignoredDismissedGroup
+    )
+    XCTAssertEqual(
+      coordinator.enqueue(
+        unit(group: "interaction|thread-1|turn-1|user-two", turn: "turn-1", item: "fresh")
+      ),
+      .started
+    )
+  }
+
   func testDisableStopsImmediatelyPersistsAndDoesNotReplayQueue() throws {
     let driver = FakeSpeechDriver()
     let store = MemorySettingsStore(
@@ -158,13 +180,14 @@ private func enabledCoordinator(driver: FakeSpeechDriver) -> VoiceAudioCoordinat
 }
 
 private func unit(
+  group: String? = nil,
   thread: String = "thread-1",
   turn: String = "turn-1",
   item: String
 ) -> VoiceAudioUnit {
   VoiceAudioUnit(
     id: "item|\(thread)|\(turn)|\(item)",
-    groupID: "turn|\(thread)|\(turn)",
+    groupID: group ?? "turn|\(thread)|\(turn)",
     threadID: thread,
     turnID: turn,
     itemID: item,

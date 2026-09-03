@@ -65,5 +65,10 @@ let package = Package(
       dependencies: ["CodexVoiceMacOS"],
       path: "Tests/CodexVoiceMacOSTests"
     ),
+    .testTarget(
+      name: "CodexVoiceMenuTests",
+      dependencies: ["CodexVoiceMenu"],
+      path: "Tests/CodexVoiceMenuTests"
+    ),
   ]
 )

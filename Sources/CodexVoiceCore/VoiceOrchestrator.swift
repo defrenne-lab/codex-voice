@@ -26,6 +26,7 @@ public enum VoiceSpeechKind: String, Sendable {
 }
 
 public struct VoiceSpeechRequest: Equatable, Sendable {
+  public let groupID: String
   public let threadID: String
   public let turnID: String
   public let itemID: String
@@ -34,6 +35,7 @@ public struct VoiceSpeechRequest: Equatable, Sendable {
   public let text: String
 
   public init(
+    groupID: String? = nil,
     threadID: String,
     turnID: String,
     itemID: String,
@@ -41,6 +43,7 @@ public struct VoiceSpeechRequest: Equatable, Sendable {
     kind: VoiceSpeechKind,
     text: String
   ) {
+    self.groupID = groupID ?? "turn|\(threadID)|\(turnID)"
     self.threadID = threadID
     self.turnID = turnID
     self.itemID = itemID
@@ -135,6 +138,7 @@ public final class VoiceOrchestrator {
 
   private struct TurnState {
     var status: String?
+    var latestUserItemID: String?
     var messageOrder: [String] = []
     var messagesByID: [String: CodexAssistantMessage] = [:]
 
@@ -236,7 +240,9 @@ public final class VoiceOrchestrator {
     case .userMessageCompleted(let message):
       var state = threads[message.threadID] ?? ThreadState()
       state.latestUserTurnID = message.turnID
-      if state.turns[message.turnID] == nil { state.turns[message.turnID] = TurnState() }
+      var turn = state.turns[message.turnID] ?? TurnState()
+      turn.latestUserItemID = message.itemID
+      state.turns[message.turnID] = turn
       threads[message.threadID] = state
     case .assistantMessageCompleted(let message):
       var state = threads[message.threadID] ?? ThreadState()
@@ -337,6 +343,7 @@ public final class VoiceOrchestrator {
     return [
       .speechRequested(
         VoiceSpeechRequest(
+          groupID: speechGroupID(for: message),
           threadID: message.threadID,
           turnID: message.turnID,
           itemID: message.itemID,
@@ -346,6 +353,12 @@ public final class VoiceOrchestrator {
         )
       )
     ]
+  }
+
+  private func speechGroupID(for message: CodexAssistantMessage) -> String {
+    let interactionID =
+      threads[message.threadID]?.turns[message.turnID]?.latestUserItemID ?? message.turnID
+    return "interaction|\(message.threadID)|\(message.turnID)|\(interactionID)"
   }
 
   private func finalCandidate(threadID: String, turnID: String) -> CodexAssistantMessage? {

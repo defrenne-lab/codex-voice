@@ -44,6 +44,32 @@ final class VoiceOrchestratorTests: XCTestCase {
     XCTAssertEqual(current.speechRequests.count, 1)
     XCTAssertEqual(current.speechRequests.first?.kind, .commentary)
     XCTAssertEqual(current.speechRequests.first?.itemID, "current")
+    XCTAssertEqual(
+      current.speechRequests.first?.groupID,
+      "interaction|A|A2|user-A2"
+    )
+  }
+
+  func testNewUserMessageInSameCodexTurnCreatesFreshAudioGroup() {
+    let pipeline = RoutingPipeline()
+    _ = pipeline.send(userMessage(thread: "A", turn: "A1", item: "user-first"))
+    let first = pipeline.send(commentary(thread: "A", turn: "A1", item: "reply-first"))
+
+    _ = pipeline.send(userMessage(thread: "A", turn: "A1", item: "user-steering"))
+    let steered = pipeline.send(commentary(thread: "A", turn: "A1", item: "reply-steering"))
+
+    XCTAssertEqual(
+      first.speechRequests.first?.groupID,
+      "interaction|A|A1|user-first"
+    )
+    XCTAssertEqual(
+      steered.speechRequests.first?.groupID,
+      "interaction|A|A1|user-steering"
+    )
+    XCTAssertNotEqual(
+      first.speechRequests.first?.groupID,
+      steered.speechRequests.first?.groupID
+    )
   }
 
   func testMainFinalAnswerIsRequestedOnlyOnceAcrossDuplicateAndSnapshot() {

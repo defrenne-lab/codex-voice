@@ -61,10 +61,9 @@ public struct VoiceAudioUnit: Equatable, Sendable {
   }
 
   public init(speechRequest: VoiceSpeechRequest) {
-    let groupID = "turn|\(speechRequest.threadID)|\(speechRequest.turnID)"
     self.init(
       id: "item|\(speechRequest.threadID)|\(speechRequest.turnID)|\(speechRequest.itemID)",
-      groupID: groupID,
+      groupID: speechRequest.groupID,
       threadID: speechRequest.threadID,
       turnID: speechRequest.turnID,
       itemID: speechRequest.itemID,
