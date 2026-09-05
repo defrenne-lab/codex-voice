@@ -2,12 +2,39 @@
 
 ## Statut
 
-Sources implémentées, non publiées. Le 5 septembre 2026 : 101 tests automatisés
-passent, sans échec, et les huit garde-fous de distribution passent. Le journal
-de validation local est `.build/combined-lot-tests.log`. La livraison du lot a été
-autorisée le 5 septembre : le candidat est v0.2.0/build 11, distinct de tous les
-artefacts déjà publiés. Signature, notarisation et publication restent des
-contrôles obligatoires avant de l’annoncer comme disponible.
+**v0.2.0 / build 11 livrée le 5 septembre 2026.**
+
+- [Version GitHub](https://github.com/defrenne-lab/codex-voice/releases/tag/v0.2.0),
+  sources de l’application au commit `087a828`.
+- 101 tests automatisés passent, sans échec, et les huit garde-fous de
+  distribution passent. La [CI de la version](https://github.com/defrenne-lab/codex-voice/actions/runs/33959251026)
+  est verte. Le journal local est `.build/combined-lot-tests.log`.
+- Developer ID, Hardened Runtime et signatures imbriquées vérifiés.
+  Notarisation Apple acceptée sans anomalie, soumission
+  `f7fa2328-5078-421a-9205-02a01b00270b`. Ticket agrafé et vérifié.
+- DMG et application contenus acceptés par Gatekeeper comme Notarized
+  Developer ID. Versions et architecture arm64 vérifiées dans le DMG monté,
+  sans lancer une autre copie de l’app.
+- Téléchargement public GitHub effectué sans authentification : identique
+  octet pour octet au DMG final, checksum vérifié, signature Sparkle valide
+  et ticket de notarisation valide après téléchargement.
+- Catalogue signé généré avec l’outil Sparkle officiel, limité à la vraie
+  version 0.2.0 ; aucun binaire de test annoncé. Signatures du catalogue et
+  de l’archive vérifiées avec la seule clé publique. Catalogue altéré refusé.
+- Service Mac mini remplacé et actif ; binaires comparés à la compilation
+  release. Ancienne version sauvegardée dans le dossier privé de l’application.
+  Réglages, dictionnaire, jeton et LaunchAgent vérifiés inchangés.
+
+SHA-256 du DMG final :
+`a25dda0f584cdf74f8c5838705f1a7be36c0139c1fdd1cc7fddd4be7aa40ed05`
+
+Le premier redémarrage du service a rencontré un délai de libération launchd ;
+le retour arrière a restauré l’ancienne version, puis une reprise bornée a
+réussi. Aucun changement de configuration ni de droits n’a été nécessaire.
+
+**Reste côté utilisateur :** une installation manuelle sur le MacBook pour
+amorcer Sparkle, puis la recette d’usage ci-dessous. Les écoutes, Option et le
+flou réel sur ce Mac ne sont pas présentés comme validés automatiquement.
 
 Le test Sparkle isolé est terminé, voir UPDATES.md. La copie d’aperçu du lot
 utilise un identifiant distinct et `CODEX_VOICE_PREVIEW=1` : aucune connexion,
@@ -52,7 +79,7 @@ reformulation par IA ; aucun service externe ni clé API n’est nécessaire.
 Le signal doux provisoire est le son macOS Glass à volume réduit ; il est
 interrompu immédiatement avec la lecture et reste à écouter lors de la recette.
 
-## Préparation d’une seule version
+## Procédure de livraison regroupée
 
 1. Finaliser la validation du lot ; augmenter les deux
    champs de version sans remplacer un artefact déjà publié.
@@ -62,9 +89,9 @@ interrompu immédiatement avec la lecture et reste à écouter lors de la recett
 3. Préparer le catalogue signé puis publier uniquement après accord, en suivant
    UPDATES.md. Le bouton de mise à jour ne peut pas fonctionner contre un
    catalogue public qui n’a pas encore été publié.
-4. Mettre à jour une seule fois le service Mac mini, avec sauvegarde du binaire
-   précédent et conservation de ses réglages/dictionnaire/jeton. Cette opération
-   n’est pas exécutée par Sparkle et n’a pas été faite pendant le développement.
+4. Mettre à jour le service Mac mini, avec sauvegarde du binaire précédent et
+   conservation de ses réglages/dictionnaire/jeton. Cette opération n’est pas
+   exécutée par Sparkle ; elle a été effectuée lors de la livraison 0.2.0.
 5. Faire une seule installation de l’application sur le MacBook, puis la recette
    ci-dessous avec l’utilisateur. Ne pas recréer les clés SSH ni les mots de passe.
 

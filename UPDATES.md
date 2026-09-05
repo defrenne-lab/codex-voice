@@ -17,13 +17,12 @@ Only **Voice Remote**, the menu app on the MacBook, is updated. The Mac mini
 service, SSH configuration, dictionary, control token and voice settings are
 not migrated or modified by this updater.
 
-**v0.2.0 / build 11 is being prepared.** Do not publish a different v0.1.9
-asset. `Updates/appcast.xml` starts
-empty: no test build or existing non-notarized release is advertised. Until
-that file is published on `main`, the configured public URL will return an
-error. The isolated end-to-end test has validated the update UI, rejection
-paths, actual replacement and self-relaunch. Public HTTPS distribution and
-the first installation on the MacBook still need the release checks below.
+**v0.2.0 / build 11 is the first updater-enabled release.** The production feed
+advertises only the signed and notarized release, not disposable test builds
+or earlier non-notarized versions. The isolated end-to-end test validated the
+update UI, rejection paths, actual replacement and self-relaunch. The first
+manual installation on the MacBook remains necessary to bootstrap Sparkle.
+See [BATCH-VALIDATION.md](BATCH-VALIDATION.md) for the combined release checks.
 
 Local validation on 2026-09-05: 80 automated tests pass, including independent
 public-key verification of the initial feed and rejection of altered content.
@@ -32,7 +31,7 @@ the Developer ID app and embedded Sparkle use the same team, Hardened Runtime
 and secure timestamps. The feed is signed and also verified by Sparkle's tool.
 Two disposable updater-enabled test versions have since been notarized and
 stapled successfully. No updater-enabled production release has been published
-or installed in `/Applications`.
+or installed in `/Applications` at that stage of the isolated testing.
 
 ### Isolated end-to-end test — 2026-09-05
 
@@ -130,13 +129,16 @@ on the command line or change global access rules to suppress prompts.
   --maximum-deltas 0 --maximum-versions 0 --embed-release-notes \
   .build/update-feed-STAGING
 
-.build/artifacts/sparkle/Sparkle/bin/sign_update \
-  --account lab.defrenne.codexvoice3.remote --verify \
-  .build/update-feed-STAGING/appcast.xml
+swift Scripts/verify-update-artifacts.swift \
+  .build/update-feed-STAGING/appcast.xml \
+  .build/update-feed-STAGING/Codex-Voice-3-vX.Y.Z-macOS.dmg \
+  Resources/CodexVoiceRemote-Info.plist
 ```
 
 Existing entries retain their version-specific download URLs. The generator
 signs the archive and feed using the app's `SURequireSignedFeed` setting.
+The verifier uses only the embedded public key, without requesting private-key
+access. It checks both signatures, lengths, release/build and download URL.
 Review version/build, minimum macOS, architecture, asset URL, size, release
 notes and signatures. No delta updates or pruning are needed for now.
 
@@ -168,10 +170,10 @@ point the public catalog at test releases or replace the user's working app:
 - Confirm settings and SSH access survive; then verify Option on the MacBook.
 - Test the first bootstrap install from the actual released DMG on a second Mac.
 
-For the first updater-enabled release, still verify the actual public HTTPS
-feed and downloaded artifact, the normal bootstrap install on the MacBook,
-and its SSH/Option/settings behavior. The loopback fixture deliberately cannot
-validate these production-specific conditions.
+On each release, verify the actual public HTTPS feed and downloaded artifact.
+For the first updater-enabled release, also perform the normal bootstrap install
+on the MacBook and verify SSH/Option/settings behavior. The loopback fixture
+deliberately cannot validate these production-specific conditions.
 
 Older versions have no Sparkle updater, so the first updater-enabled version
 still needs one manual installation. Apple notarization is not a promise that

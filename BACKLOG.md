@@ -1,11 +1,11 @@
 # Backlog
 
-## Prochain lot — regroupé, implémentation en cours
+## Lot v0.2.0 — livraison
 
 Le 5 septembre 2026, l’utilisateur a demandé de regrouper toutes ces
 modifications et de ne faire qu’une installation/recette à la fin. La préparation
-d’une version séparée pour Sparkle est donc suspendue. Aucun service réel ni
-application installée n’a été remplacé pendant ce lot.
+d’une version séparée pour Sparkle a donc été abandonnée. L’utilisateur a ensuite
+autorisé la livraison complète, y compris la publication et le service Mac mini.
 
 État des sources : correction du lecteur borné, mémoire de cinq messages,
 sélection distante, flèches, notifications temporisées, pastille agrandie et
@@ -17,8 +17,11 @@ d’aperçu a été fermée. La transparence en situation réelle reste à véri
 Le 5 septembre 2026, l’utilisateur a confirmé l’extraction locale pour cette
 première version des notifications : une courte phrase issue de la réponse,
 pas une synthèse IA reformulée. Aucun service externe ni clé API n’est nécessaire.
-La fabrication/notarisation du DMG final, le déploiement coordonné du service
-Mac mini, la première installation MacBook et la publication restent à faire.
+Le DMG v0.2.0/build 11 est signé Developer ID, notarié et accepté par Gatekeeper.
+Le service Mac mini a été remplacé avec sauvegarde des binaires précédents ;
+réglages, dictionnaire, jeton et LaunchAgent ont été vérifiés inchangés.
+La première installation sur le MacBook et la recette d’usage restent à faire
+par l’utilisateur. Le suivi de livraison figure dans BATCH-VALIDATION.md.
 
 ### Fiabilité
 
@@ -54,18 +57,16 @@ Mac mini, la première installation MacBook et la publication restent à faire.
 - Ajouter ensuite un bouton de recherche et d’installation des mises à jour dans l’app, avec Sparkle et les versions hébergées sur GitHub. Prévoir une première installation manuelle pour amorcer ce mécanisme et valider le remplacement ainsi que le redémarrage effectifs.
 - Distinguer la mise à jour du contrôleur MacBook de celle du service Mac mini. Ne pas promettre que la notarisation évitera toute nouvelle autorisation de confidentialité macOS.
 
-Avancement de cette brique, autorisée séparément : signature Developer ID et
-notarisation validées sur un DMG de test ; bouton Sparkle manuel intégré dans
-les sources, avec dépendance verrouillée, framework embarqué, signature des
-composants et clé Sparkle dédiée dans le trousseau. Aucun déploiement ni
-publication. Les copies de test avec Sparkle sont notariées ; téléchargement,
+Avancement de cette brique : signature Developer ID et notarisation validées
+sur les copies de test puis sur le DMG v0.2.0 ; bouton Sparkle manuel intégré,
+avec dépendance verrouillée, framework embarqué, signature des composants et
+clé Sparkle dédiée dans le trousseau. Les copies de test sont notariées ; téléchargement,
 contrôle des signatures, erreurs et annulation sont vérifiés dans l’interface.
 Après acceptation par l’utilisateur de l’accès au dossier Documents, le test
 réel a validé le remplacement, le redémarrage sur la nouvelle version, sa
 signature Apple et la conservation du réglage témoin isolé. Les copies et le
-serveur de test sont arrêtés. Restent la première version distribuée, son
-catalogue HTTPS signé et les vérifications sur le MacBook avec les vrais
-réglages SSH/Option. Détails dans UPDATES.md.
+serveur de test sont arrêtés. Restent les vérifications sur le MacBook après
+la première installation avec les vrais réglages SSH/Option. Détails dans UPDATES.md.
 
 Ces éléments font partie du même lot. Les tests de développement restent
 progressifs ; la recette utilisateur et la distribution sont regroupées à la fin.

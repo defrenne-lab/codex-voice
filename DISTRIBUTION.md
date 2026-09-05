@@ -5,9 +5,9 @@ the Mac App Store. It does not install the app, update the Mac mini service,
 or publish a GitHub release. The separate [updater guide](UPDATES.md) covers
 Sparkle keys, the signed feed and update testing.
 
-The published v0.1.9 release is still **not notarized**. Preparing the workflow
-below does not change that release. Do not replace an existing release asset
-with a differently signed build bearing the same version.
+v0.2.0 is the first Developer ID signed and notarized release. The earlier
+v0.1.9 release remains **not notarized** and is not replaced. Never replace an
+existing release asset with a differently signed build bearing the same version.
 
 ## Signing identity — once per build Mac
 
@@ -135,10 +135,10 @@ notarization run explicitly on the configured build Mac. No certificate export,
 Apple password or Keychain modification is added to CI.
 
 The source now includes a manual **Check for Updates** button using Sparkle.
-Follow [UPDATES.md](UPDATES.md) before publishing the first updater-enabled
-release. The isolated replacement/relaunch test passed. The real MacBook
-bootstrap and release-feed/download checks remain required; Developer ID and
-notarization alone do not validate the complete distribution path.
+Follow [UPDATES.md](UPDATES.md) for signed-feed publication and verification.
+The isolated replacement/relaunch test passed. A real MacBook bootstrap is
+still required when moving from v0.1.x; Developer ID and notarization alone do
+not validate SSH, Option permissions or subjective audio behavior on that Mac.
 
 ## Apple references
 

@@ -25,5 +25,7 @@ jobs:
         run: |
           test -x skills/piloter-le-mac-mini/scripts/control_mac_mini.sh
           zsh -n skills/piloter-le-mac-mini/scripts/control_mac_mini.sh
+      - name: Typecheck public-key release verifier
+        run: swiftc -typecheck Scripts/verify-update-artifacts.swift
       - name: Build release app
         run: Scripts/build-remote-app.sh
