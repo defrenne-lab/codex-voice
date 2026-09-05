@@ -99,11 +99,18 @@ final class VoiceReadingSessionTests: XCTestCase {
     XCTAssertFalse(test.session.navigate(forward: false))
     XCTAssertTrue(test.session.navigate(forward: true))
     XCTAssertEqual(test.driver.requests.last?.text, "Deux.")
+    let navigationBeforeStop = test.session.navigation
+    let mainConversationBeforeStop = test.session.mainConversation
     test.session.interrupt()
     test.clock.date += 60
     test.session.tick()
     XCTAssertNil(test.audio.snapshot.currentUnit)
     XCTAssertEqual(test.audio.snapshot.queuedUnitCount, 0)
+    XCTAssertEqual(test.session.navigation, navigationBeforeStop)
+    XCTAssertEqual(test.session.mainConversation, mainConversationBeforeStop)
+    XCTAssertTrue(test.audio.settings.isEnabled)
+    XCTAssertTrue(test.session.navigate(forward: true))
+    XCTAssertEqual(test.driver.requests.last?.text, "Trois.")
   }
 
   func testNotificationsWaitTenSecondsAfterLastMainBlockAndTwoBetweenSummaries() {

@@ -39,6 +39,7 @@ V3 is a clean Swift rewrite shaped by several months of daily use. Its product r
 - The menu keeps the main Codex task visible after its audio finishes.
 - Click the task name to select the main conversation without sending a message.
 - Previous/next paragraph replay across the five latest messages of each task.
+- A small Stop button beside the history arrows, without closing the popover.
 - Gentle, grouped notifications for parallel final responses, using local excerpts.
 - Non-preemptive audio queue: another Codex task cannot cut in.
 - Persistent safe defaults: a new installation starts silent and re-enabling voice never replays an old backlog.

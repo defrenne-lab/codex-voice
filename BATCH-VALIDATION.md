@@ -32,9 +32,16 @@ Le premier redémarrage du service a rencontré un délai de libération launchd
 le retour arrière a restauré l’ancienne version, puis une reprise bornée a
 réussi. Aucun changement de configuration ni de droits n’a été nécessaire.
 
-**Reste côté utilisateur :** une installation manuelle sur le MacBook pour
-amorcer Sparkle, puis la recette d’usage ci-dessous. Les écoutes, Option et le
-flou réel sur ce Mac ne sont pas présentés comme validés automatiquement.
+**Séance de recette guidée terminée le 5 septembre 2026.** L’utilisateur a
+confirmé l’installation sur le MacBook dès le premier essai, la coupure avec
+Option, le changement de conversation principale, l’historique, la recherche
+de mise à jour, la pastille et la transparence, le volume, la vitesse,
+l’ouverture du dictionnaire et le partage d’écran ciblant le Mac mini.
+Les phrases de notification sont entendues, mais pas le signal sonore qui les
+précède : ce point reste à diagnostiquer. Les scénarios non vérifiés et le test
+reporté à l’usage réel restent identifiés ci-dessous ; il ne s’agit pas d’une
+validation exhaustive de tous les parcours. Les retouches d’usage sont
+consignées dans BACKLOG.md, sans modification de l’application pendant la recette.
 
 Le test Sparkle isolé est terminé, voir UPDATES.md. La copie d’aperçu du lot
 utilise un identifiant distinct et `CODEX_VOICE_PREVIEW=1` : aucune connexion,
@@ -76,8 +83,10 @@ L’utilisateur a confirmé le 5 septembre 2026 l’extraction locale pour comme
 Le résumé est une phrase extraite de la réponse, limitée à 30 mots et
 180 caractères, précédée des trois premiers mots du titre. Ce n’est pas une
 reformulation par IA ; aucun service externe ni clé API n’est nécessaire.
-Le signal doux provisoire est le son macOS Glass à volume réduit ; il est
-interrompu immédiatement avec la lecture et reste à écouter lors de la recette.
+Le signal doux provisoire prévu est le son macOS Glass à volume réduit ; son
+arrêt est lié à celui de la lecture. Lors de la recette du 5 septembre 2026,
+l’utilisateur entend la phrase de notification, mais ne perçoit pas le signal.
+Son audibilité reste non validée et le diagnostic est consigné dans BACKLOG.md.
 
 ## Procédure de livraison regroupée
 
@@ -96,6 +105,50 @@ interrompu immédiatement avec la lecture et reste à écouter lors de la recett
    ci-dessous avec l’utilisateur. Ne pas recréer les clés SSH ni les mots de passe.
 
 ## Recette utilisateur finale, sur le MacBook
+
+### Confirmations utilisateur du 5 septembre 2026
+
+- Installation de v0.2.0 réussie dès le premier essai.
+- Coupure de la lecture avec Option : « ça marche nickel ».
+- Curseur de volume système : l’utilisateur confirme que la baisse et la
+  remontée du volume font bien varier le son entendu sur le Mac mini.
+- Changement de vitesse : l’utilisateur confirme le fonctionnement après
+  le test proposé sur un bloc de l’historique.
+- Ouverture du dictionnaire avec les entrées habituelles et ouverture du
+  partage d’écran ciblant le Mac mini : l’utilisateur confirme les deux.
+  Ce contrôle du dictionnaire ne teste pas une nouvelle modification ni sa
+  synchronisation.
+- Changement de conversation principale et navigation dans l’historique réussis.
+- Taille de la pastille et fond translucide avec textes lisibles validés par
+  l’utilisateur : « c’est super, c’est parfait ». Le rendu avec le réglage
+  d’accessibilité « Réduire la transparence » n’a pas été vérifié explicitement.
+- Recherche de mise à jour confirmée fonctionnelle sur le MacBook. Cela ne
+  valide pas encore l’installation d’une future version via Sparkle sur ce Mac.
+- Phrase de notification annexe entendue, fonctionnement jugé satisfaisant.
+  Aucun son distinctif n’est perçu avant la phrase : ne pas considérer le
+  signal sonore comme validé. Les délais exacts et l’abandon d’une rafale
+  entière restent à vérifier explicitement.
+- Amélioration demandée pour une prochaine version : un petit bouton d’arrêt
+  à côté des flèches, pour couper la relecture sans fermer la popover.
+  Demande consignée dans BACKLOG.md ; aucune modification de l’application
+  n’est engagée pendant cette recette.
+- Autre amélioration consignée dans BACKLOG.md : retirer l’icône de droite et
+  les points de suspension du bouton de recherche de mise à jour au repos,
+  qui donnent actuellement l’impression d’une recherche permanente.
+- Souhait consigné : une phrase de notification légèrement moins forte.
+  L’utilisateur autorise uniquement un réglage existant, pas un développement
+  supplémentaire. Aucun volume séparé n’étant disponible, aucun réglage audio
+  n’a été changé. L’état consulté indique une voix active, non muette, et un
+  volume système d’environ 49 % ; ce contrôle ne vérifie pas le son Glass.
+
+### Vérification reportée à l’usage réel
+
+Le 5 septembre 2026, l’utilisateur préfère tester plus tard la désactivation
+de la voix, l’arrivée d’une réponse puis la réactivation sans rattrapage audio.
+Ce scénario est jugé trop contraignant pour la recette guidée ; il reste
+non validé manuellement, sans bloquer les autres vérifications.
+
+### Parcours de vérification complet
 
 - Vérifier le numéro de version, la connexion et les voix/réglages conservés.
 - Vérifier la taille de la pastille et le fond translucide sur un arrière-plan

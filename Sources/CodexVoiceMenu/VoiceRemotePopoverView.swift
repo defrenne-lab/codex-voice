@@ -51,10 +51,7 @@ struct VoiceRemotePopoverView: View {
     VStack(alignment: .leading, spacing: 4) {
       Button(action: checkForUpdates) {
         HStack(spacing: 10) {
-          Image(systemName: "arrow.triangle.2.circlepath")
-            .font(.system(size: 13, weight: .medium))
-            .frame(width: 20)
-          Text("Rechercher une mise à jour…")
+          Text("Rechercher une mise à jour")
             .font(.system(size: 12, weight: .medium))
           Spacer(minLength: 0)
         }
@@ -147,6 +144,12 @@ struct VoiceRemotePopoverView: View {
           .disabled(!model.canGoNext)
           .help("Réécouter le bloc suivant")
           .accessibilityLabel("Bloc suivant")
+          Button(action: model.interruptAudio) {
+            Image(systemName: "stop.fill").frame(width: 22, height: 20)
+          }
+          .disabled(!model.canStop)
+          .help("Arrêter la lecture sans fermer cette fenêtre")
+          .accessibilityLabel("Arrêter la relecture")
           if let history = model.historyState, history.blockCount > 0 {
             Text(
               history.selectedBlock.map { "\($0) / \(history.blockCount)" }

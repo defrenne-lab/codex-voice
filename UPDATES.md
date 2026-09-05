@@ -4,7 +4,8 @@
 
 The menu app uses [Sparkle 2.9.6](https://github.com/sparkle-project/Sparkle/releases/tag/2.9.6),
 locked by `Package.swift` and `Package.resolved`. The popover and right-click
-menu provide **Rechercher une mise à jour…**. This action is independent of the
+menu provide **Rechercher une mise à jour** (without the ellipsis starting in
+v0.2.1). This action is independent of the
 Mac mini connection and closes the popover before showing Sparkle's own UI.
 
 There are no scheduled update checks, automatic installations or system-profile
@@ -21,7 +22,10 @@ not migrated or modified by this updater.
 advertises only the signed and notarized release, not disposable test builds
 or earlier non-notarized versions. The isolated end-to-end test validated the
 update UI, rejection paths, actual replacement and self-relaunch. The first
-manual installation on the MacBook remains necessary to bootstrap Sparkle.
+manual installation on the MacBook was confirmed by the user on 2026-09-05,
+along with the manual no-update check. v0.2.1 is the first follow-up release
+intended to test the production replacement/relaunch on that MacBook;
+see [RELEASE-VALIDATION-0.2.1.md](RELEASE-VALIDATION-0.2.1.md).
 See [BATCH-VALIDATION.md](BATCH-VALIDATION.md) for the combined release checks.
 
 Local validation on 2026-09-05: 80 automated tests pass, including independent

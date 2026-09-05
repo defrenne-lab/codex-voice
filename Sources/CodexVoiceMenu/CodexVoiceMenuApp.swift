@@ -104,7 +104,7 @@ private final class VoiceRemoteStatusItemController: NSObject, NSPopoverDelegate
     let menu = NSMenu()
     menu.autoenablesItems = false
     let updateItem = NSMenuItem(
-      title: "Rechercher une mise à jour…",
+      title: "Rechercher une mise à jour",
       action: #selector(checkForUpdates),
       keyEquivalent: ""
     )

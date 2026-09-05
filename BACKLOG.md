@@ -1,5 +1,56 @@
 # Backlog
 
+## Lot v0.2.1 — en préparation
+
+Le 5 septembre 2026, après la recette de v0.2.0, l’utilisateur demande une petite
+version pour le bouton Stop, puis y ajoute la présentation de la recherche de
+mise à jour. Périmètre : les deux changements d’interface ci-dessous seulement.
+Le service Mac mini reste inchangé ; la mise à jour servira à vérifier Sparkle
+sur le MacBook installé en v0.2.0. Suivi dans RELEASE-VALIDATION-0.2.1.md.
+
+### Arrêter une relecture sans fermer la popover
+
+Demande du 5 septembre 2026, pendant la recette utilisateur de v0.2.0.
+Implémenté pour v0.2.1 à la demande de l’utilisateur après la recette.
+
+- Ajouter un petit bouton d’arrêt à côté des flèches précédent/suivant de l’historique.
+- Un clic coupe la relecture en cours, comme Option pour l’audio, mais laisse la popover ouverte pour continuer à naviguer.
+- Ne pas désactiver globalement la voix ni changer la conversation principale ; ne pas reprendre automatiquement la lecture interrompue.
+- Conserver des contrôles discrets, cohérents avec les deux flèches existantes.
+
+### Clarifier le bouton de recherche de mise à jour
+
+Retour du 5 septembre 2026 : la vérification fonctionne sur le MacBook, mais
+l’icône à droite et les points de suspension donnent l’impression d’une
+recherche permanente. Retouche ajoutée à v0.2.1 à sa demande.
+
+- Au repos, afficher « Rechercher une mise à jour », sans points de suspension ni petite icône à droite.
+- Rendre explicite qu’il s’agit d’un bouton à actionner, pas d’une opération en cours.
+- Ne montrer un éventuel indicateur d’activité que pendant une recherche réellement déclenchée ; conserver le fonctionnement manuel existant.
+
+## Prochaines versions — retours d’usage
+
+### Ne pas dicter les adresses web
+
+Le 5 septembre 2026, l’utilisateur signale une lecture du libellé suivie de
+l’adresse HTTP/www. Souhait : garder le libellé du lien, ignorer son adresse.
+Cette modification a été retirée explicitement de v0.2.1 car elle nécessite
+une mise à jour du service Mac mini, que l’utilisateur ne souhaite pas faire
+maintenant. Le prototype local et ses tests spécifiques ont été retirés ;
+aucun changement de lecture n’a été déployé. À reprendre dans un futur lot
+incluant le service et à tester sur les liens Markdown, les adresses brutes,
+les variantes échappées, la relecture et les notifications.
+
+### Peaufiner le son des notifications annexes
+
+Retour du 5 septembre 2026 : la phrase de notification est bien entendue et
+le fonctionnement est jugé satisfaisant, mais aucun son distinctif n’est perçu
+avant la phrase. Le signal sonore n’est donc pas validé à l’écoute.
+
+- Diagnostiquer le signal avant de changer son niveau : le code prévoit le son macOS Glass avec un gain de 0,18 et une attente de 500 ms avant la voix ; le fichier système est présent. Ces constats ne prouvent pas que le signal a été joué ou qu’il est audible dans l’installation réelle.
+- Souhait de confort : rendre la phrase de notification légèrement moins forte que la lecture principale, sans baisser le volume système ni la conversation principale.
+- Contrainte explicite : appliquer seulement si un réglage existant le permet ; aucun développement supplémentaire demandé pendant la recette. La vérification montre qu’aucun volume distinct n’est exposé dans les réglages, l’API ou la skill ; toutes les phrases utilisent actuellement le même gain de synthèse. L’évolution reste donc au backlog, sans modification du code ni déploiement.
+
 ## Lot v0.2.0 — livraison
 
 Le 5 septembre 2026, l’utilisateur a demandé de regrouper toutes ces
@@ -12,7 +63,9 @@ sélection distante, flèches, notifications temporisées, pastille agrandie et
 fond natif translucide intégrés. Les 101 tests automatisés passent, ainsi que
 les huit garde-fous de distribution ; le rendu hors ligne a été inspecté.
 Le contrôle natif automatisé a dépassé son délai et sa copie
-d’aperçu a été fermée. La transparence en situation réelle reste à vérifier.
+d’aperçu a été fermée. L’utilisateur a depuis confirmé sur le MacBook que la
+taille de la pastille et le fond translucide avec textes lisibles lui conviennent.
+Le rendu avec « Réduire la transparence » reste à vérifier explicitement.
 
 Le 5 septembre 2026, l’utilisateur a confirmé l’extraction locale pour cette
 première version des notifications : une courte phrase issue de la réponse,
@@ -20,8 +73,13 @@ pas une synthèse IA reformulée. Aucun service externe ni clé API n’est néc
 Le DMG v0.2.0/build 11 est signé Developer ID, notarié et accepté par Gatekeeper.
 Le service Mac mini a été remplacé avec sauvegarde des binaires précédents ;
 réglages, dictionnaire, jeton et LaunchAgent ont été vérifiés inchangés.
-La première installation sur le MacBook et la recette d’usage restent à faire
-par l’utilisateur. Le suivi de livraison figure dans BATCH-VALIDATION.md.
+L’utilisateur a confirmé le 5 septembre 2026 l’installation sur le MacBook dès
+le premier essai, la coupure avec Option, le changement de conversation
+principale, la navigation dans l’historique, la recherche de mise à jour,
+le volume, la vitesse, l’ouverture du dictionnaire et le partage d’écran.
+La séance de recette guidée est terminée. Le son distinctif des notifications
+reste non perçu ; les scénarios non vérifiés et le test reporté à l’usage réel
+sont distingués des validations obtenues dans BATCH-VALIDATION.md.
 
 ### Fiabilité
 
@@ -65,8 +123,10 @@ contrôle des signatures, erreurs et annulation sont vérifiés dans l’interfa
 Après acceptation par l’utilisateur de l’accès au dossier Documents, le test
 réel a validé le remplacement, le redémarrage sur la nouvelle version, sa
 signature Apple et la conservation du réglage témoin isolé. Les copies et le
-serveur de test sont arrêtés. Restent les vérifications sur le MacBook après
-la première installation avec les vrais réglages SSH/Option. Détails dans UPDATES.md.
+serveur de test sont arrêtés. L’installation réelle sur le MacBook et la coupure
+avec Option sont désormais confirmées par l’utilisateur, ainsi que la recherche
+de mise à jour sur ce Mac. Le remplacement par une future version via ce bouton
+reste distinct de cette vérification. Détails dans UPDATES.md.
 
 Ces éléments font partie du même lot. Les tests de développement restent
 progressifs ; la recette utilisateur et la distribution sont regroupées à la fin.
