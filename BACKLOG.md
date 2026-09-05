@@ -1,12 +1,14 @@
 # Backlog
 
-## Lot v0.2.1 — en préparation
+## Lot v0.2.1 — livré
 
 Le 5 septembre 2026, après la recette de v0.2.0, l’utilisateur demande une petite
 version pour le bouton Stop, puis y ajoute la présentation de la recherche de
 mise à jour. Périmètre : les deux changements d’interface ci-dessous seulement.
-Le service Mac mini reste inchangé ; la mise à jour servira à vérifier Sparkle
-sur le MacBook installé en v0.2.0. Suivi dans RELEASE-VALIDATION-0.2.1.md.
+Le service Mac mini reste inchangé. La v0.2.1/build 12 est publiée sur GitHub
+avec son DMG notarié et son catalogue Sparkle signé, vérifiés après téléchargement
+public. Le remplacement réel depuis v0.2.0 reste à confirmer sur le MacBook.
+Suivi dans RELEASE-VALIDATION-0.2.1.md.
 
 ### Arrêter une relecture sans fermer la popover
 

@@ -19,7 +19,7 @@ service, SSH configuration, dictionary, control token and voice settings are
 not migrated or modified by this updater.
 
 **v0.2.0 / build 11 is the first updater-enabled release.** The production feed
-advertises only the signed and notarized release, not disposable test builds
+advertises the signed and notarized v0.2.1 and v0.2.0 releases, not disposable test builds
 or earlier non-notarized versions. The isolated end-to-end test validated the
 update UI, rejection paths, actual replacement and self-relaunch. The first
 manual installation on the MacBook was confirmed by the user on 2026-09-05,
