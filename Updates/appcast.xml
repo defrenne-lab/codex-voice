@@ -9,6 +9,35 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         <description>Mises à jour de l’application macOS Codex Voice 3.</description>
         <language>fr</language>
         <item>
+            <title>0.2.1</title>
+            <pubDate>Sat, 05 Sep 2026 12:47:09 +0200</pubDate>
+            <sparkle:version>12</sparkle:version>
+            <sparkle:shortVersionString>0.2.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[# Codex Voice 3 v0.2.1
+
+Deux petites améliorations de la télécommande MacBook :
+
+- Un bouton **Stop** à côté des flèches de l’historique coupe la relecture
+  sans fermer la popover. La conversation principale et la position dans
+  l’historique sont conservées ; la voix reste activée et la lecture ne
+  reprend pas automatiquement. Le bouton est grisé lorsqu’il n’y a rien à arrêter.
+- Le bouton **Rechercher une mise à jour** n’affiche plus d’icône ni de points
+  de suspension, pour ne plus évoquer une recherche permanente. La recherche
+  reste manuelle ; le menu du clic droit utilise le même libellé.
+
+Depuis v0.2.0, utilisez **Rechercher une mise à jour…** dans l’application,
+puis confirmez la mise à jour vers v0.2.1. Le nouveau libellé apparaîtra après
+le redémarrage de l’application.
+
+Le service Mac mini v0.2.0 reste compatible et n’a pas besoin d’être mis à jour.
+Les réglages SSH, voix, volume et dictionnaire ne sont pas modifiés. Le son
+des notifications et leur volume restent inchangés dans cette version.
+]]></description>
+            <enclosure url="https://github.com/defrenne-lab/codex-voice/releases/download/v0.2.1/Codex-Voice-3-v0.2.1-macOS.dmg" length="2912776" type="application/octet-stream" sparkle:edSignature="PfT8cT3THmJa2HzBDGJ1PR1Kk0xX/3zaivYcNHI+EOXT1nhYpI4dviGdUAwEOjshINR7DlG8E1zbhnZoGaP8AA=="/>
+        </item>
+        <item>
             <title>0.2.0</title>
             <pubDate>Sat, 05 Sep 2026 11:55:43 +0200</pubDate>
             <sparkle:version>11</sparkle:version>
@@ -71,6 +100,6 @@ et de transparence sur le MacBook est à effectuer après installation.
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: HSLXIh32HeXfqVcbZSP8VSiQQWkSkhhgSSMeCaSL8+xJzb8j6/ZQX8VoxDxZpqBKxtuwmZ0MqLk61DC6ETtMBQ==
-length: 4222
+edSignature: pFIjcCKn28RT1T/P6/Zrkw+uDjmRWmxjyppgN8Jtn2FxdVqm1scVMhigWj49lss3jOwzLjSDPMOd791CUZswBw==
+length: 6074
 -->
