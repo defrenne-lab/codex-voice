@@ -1,4 +1,5 @@
 import AVFoundation
+import AppKit
 import CodexVoiceCore
 import Foundation
 
@@ -22,6 +23,8 @@ public final class MacOSSpeechDriver: NSObject, VoiceSpeechDriver,
   private let pronunciationDictionary: PronunciationDictionary
   private var activeUnitID: String?
   private var activeUtterance: AVSpeechUtterance?
+  private var cueTask: Task<Void, Never>?
+  private var notificationSound: NSSound?
 
   public var completionHandler: ((String, VoiceSpeechDriverOutcome) -> Void)?
 
@@ -46,10 +49,25 @@ public final class MacOSSpeechDriver: NSObject, VoiceSpeechDriver,
     }
     activeUnitID = request.unitID
     activeUtterance = utterance
-    synthesizer.speak(utterance)
+    if request.notificationCue {
+      notificationSound = NSSound(named: NSSound.Name("Glass"))
+      notificationSound?.volume = 0.18
+      notificationSound?.play()
+      cueTask = Task { [weak self] in
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        guard !Task.isCancelled, let self, activeUnitID == request.unitID else { return }
+        synthesizer.speak(utterance)
+      }
+    } else {
+      synthesizer.speak(utterance)
+    }
   }
 
   public func stop() {
+    cueTask?.cancel()
+    cueTask = nil
+    notificationSound?.stop()
+    notificationSound = nil
     activeUnitID = nil
     activeUtterance = nil
     if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }

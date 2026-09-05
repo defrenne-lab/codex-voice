@@ -32,8 +32,11 @@ public struct CompositeIngestion: Sendable {
 
 public final class CompositeCodexEventSource {
   private var eventsByIdentity: [String: CodexSourceEvent] = [:]
+  private var identities: BoundedIdentitySet
 
-  public init() {}
+  public init(maximumEvents: Int = 2_048) {
+    identities = BoundedIdentitySet(capacity: maximumEvents)
+  }
 
   public var knownEventCount: Int { eventsByIdentity.count }
 
@@ -44,6 +47,9 @@ public final class CompositeCodexEventSource {
   @discardableResult
   public func ingest(_ event: CodexSourceEvent) -> CompositeIngestion {
     guard let previous = eventsByIdentity[event.identityKey] else {
+      if let evicted = identities.insert(event.identityKey).evicted {
+        eventsByIdentity[evicted] = nil
+      }
       eventsByIdentity[event.identityKey] = event
       return CompositeIngestion(
         observation: event,

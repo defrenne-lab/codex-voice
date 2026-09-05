@@ -41,6 +41,9 @@ final class VoiceRemoteViewModel: ObservableObject {
   @Published private(set) var availableVoices: [VoiceControlVoice] = []
   @Published private(set) var currentAudio: VoiceControlCurrentAudio?
   @Published private(set) var mainConversation: VoiceControlConversation?
+  @Published private(set) var conversations: [VoiceControlConversation] = []
+  @Published private(set) var historyState: VoiceHistoryNavigationState?
+  @Published private(set) var pendingNotificationCount = 0
   @Published private(set) var queuedUnitCount = 0
   @Published private(set) var optionMonitoringAuthorized = false
   @Published private(set) var pronunciationDictionaryStatus = "TextEdit"
@@ -90,7 +93,28 @@ final class VoiceRemoteViewModel: ObservableObject {
   }
 
   var isReading: Bool { currentAudio != nil }
-  var canStop: Bool { connectionPhase == .connected && (currentAudio != nil || queuedUnitCount > 0) }
+  var canStop: Bool {
+    connectionPhase == .connected
+      && (currentAudio != nil || queuedUnitCount > 0 || pendingNotificationCount > 0)
+  }
+  var mainConversationTitle: String {
+    mainConversation?.threadTitle?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+      ?? (mainConversation == nil ? "Choisir une conversation" : "Conversation Codex")
+  }
+  var canGoPrevious: Bool {
+    controlsEnabled && voiceEnabled && !muted && historyState?.canGoPrevious == true
+  }
+  var canGoNext: Bool {
+    controlsEnabled && voiceEnabled && !muted && historyState?.canGoNext == true
+  }
+  var readingStatus: String {
+    switch currentAudio?.kind {
+    case "notification": return "Notification · \(readingTitle)"
+    case "history": return "Réécoute d’un bloc"
+    case .some: return "Lecture en cours"
+    case nil: return "En attente"
+    }
+  }
   var controlsEnabled: Bool { connectionPhase == .connected }
   var canOpenScreenSharing: Bool { configuration.screenSharingURL != nil }
 
@@ -156,6 +180,15 @@ final class VoiceRemoteViewModel: ObservableObject {
         turnID: "preview-turn",
         threadTitle: "Améliorer la fusion"
       )
+      conversations = [
+        mainConversation!,
+        VoiceControlConversation(
+          threadID: "preview-secondary",
+          turnID: "preview-turn-2", threadTitle: "Optimisation GitHub"),
+      ]
+      historyState = VoiceHistoryNavigationState(
+        canGoPrevious: true, canGoNext: true,
+        blockCount: 12, selectedBlock: 8)
       optionMonitoringAuthorized = true
       return
     }
@@ -219,9 +252,26 @@ final class VoiceRemoteViewModel: ObservableObject {
     if configuration.isPreview {
       currentAudio = nil
       queuedUnitCount = 0
+      pendingNotificationCount = 0
       return
     }
     perform(.interruptAudio)
+  }
+
+  func selectConversation(_ conversation: VoiceControlConversation) {
+    guard controlsEnabled else { return }
+    if configuration.isPreview {
+      mainConversation = conversation
+      currentAudio = nil
+      return
+    }
+    perform(.selectConversation(conversation.threadID))
+  }
+
+  func navigateHistory(forward: Bool) {
+    guard forward ? canGoNext : canGoPrevious else { return }
+    if configuration.isPreview { return }
+    perform(forward ? .nextBlock : .previousBlock)
   }
 
   func requestOptionMonitoringAuthorization() {
@@ -353,6 +403,9 @@ final class VoiceRemoteViewModel: ObservableObject {
     if let voices = state.availableVoices { availableVoices = voices }
     currentAudio = state.currentAudio
     mainConversation = state.mainConversation
+    conversations = state.conversations ?? []
+    historyState = state.history
+    pendingNotificationCount = state.pendingResponseCount
     queuedUnitCount = state.queuedUnitCount
   }
 
@@ -387,9 +440,11 @@ final class VoiceRemoteViewModel: ObservableObject {
   }
 
   private func openInTextEdit(_ fileURL: URL) {
-    guard let textEditURL = NSWorkspace.shared.urlForApplication(
-      withBundleIdentifier: "com.apple.TextEdit"
-    ) else {
+    guard
+      let textEditURL = NSWorkspace.shared.urlForApplication(
+        withBundleIdentifier: "com.apple.TextEdit"
+      )
+    else {
       NSWorkspace.shared.open(fileURL)
       return
     }
@@ -494,6 +549,6 @@ private enum VoiceRemoteViewModelError: LocalizedError {
   }
 }
 
-private extension String {
-  var nilIfEmpty: String? { isEmpty ? nil : self }
+extension String {
+  fileprivate var nilIfEmpty: String? { isEmpty ? nil : self }
 }

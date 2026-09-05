@@ -144,6 +144,9 @@ public final class VoiceControlWebSocketServer: @unchecked Sendable {
       Task { @MainActor [weak self, weak client] in
         guard let self, let client else { return }
         let result = self.service.handle(request)
+        if result.isAuthenticated, result.message.actionPerformed == true {
+          self.publishState()
+        }
         guard let response = try? JSONEncoder().encode(result.message) else { return }
         self.queue.async { [weak self, weak client] in
           guard let self, let client else { return }

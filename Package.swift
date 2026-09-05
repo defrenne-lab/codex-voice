@@ -16,6 +16,9 @@ let package = Package(
     .executable(name: "codex-voice-remote", targets: ["CodexVoiceRemote"]),
     .executable(name: "codex-voice-menu", targets: ["CodexVoiceMenu"]),
   ],
+  dependencies: [
+    .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.9.6"),
+  ],
   targets: [
     .target(
       name: "CodexVoiceCore",
@@ -47,8 +50,15 @@ let package = Package(
     ),
     .executableTarget(
       name: "CodexVoiceMenu",
-      dependencies: ["CodexVoiceCore", "CodexVoiceMacOS"],
-      path: "Sources/CodexVoiceMenu"
+      dependencies: [
+        "CodexVoiceCore",
+        "CodexVoiceMacOS",
+        .product(name: "Sparkle", package: "Sparkle"),
+      ],
+      path: "Sources/CodexVoiceMenu",
+      linkerSettings: [
+        .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"]),
+      ]
     ),
     .testTarget(
       name: "CodexVoiceProbeTests",

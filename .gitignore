@@ -4,5 +4,10 @@
 .DS_Store
 .env
 .signing-identity.local
+.developer-id.local
+# Signing credentials/backups must never enter the public repository.
+*.p12
+*.pfx
+*.p8
 *.log
 control-token

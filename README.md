@@ -24,7 +24,7 @@ The first versions worked well while Codex, speech and keyboard input all lived 
 
 V3 is a clean Swift rewrite shaped by several months of daily use. Its product rule is deliberately simple: **the user may interrupt the voice, but one Codex task may never interrupt another.**
 
-## Available in v0.1
+## Available in v0.2
 
 - Native macOS menu-bar controller with a compact blue halo.
 - Global, passive Option-key observation for immediate remote interruption.
@@ -37,12 +37,19 @@ V3 is a clean Swift rewrite shaped by several months of daily use. Its product r
 - macOS `AVSpeechSynthesizer` output on the Mac that runs Codex.
 - Multi-task ingestion, deduplication and main-conversation selection.
 - The menu keeps the main Codex task visible after its audio finishes.
+- Click the task name to select the main conversation without sending a message.
+- Previous/next paragraph replay across the five latest messages of each task.
+- Gentle, grouped notifications for parallel final responses, using local excerpts.
 - Non-preemptive audio queue: another Codex task cannot cut in.
 - Persistent safe defaults: a new installation starts silent and re-enabling voice never replays an old backlog.
 - A user LaunchAgent installer for the headless Mac; no administrator account required.
 - A guided **Install and Replace** update flow when the MacBook app is opened from its DMG.
+- A manual **Check for Updates** button, with signed Sparkle updates from GitHub.
+- A larger speaker badge and a native translucent popover with an accessibility fallback.
 
-The first public release is an Apple Silicon developer preview for macOS 13 or later. Starting with v0.1.5, release archives use a stable Apple Development signature so macOS can recognize updates as the same app. They are not Developer ID signed or notarized yet.
+The app is an Apple Silicon developer preview for macOS 13 or later. v0.2.0
+introduces Developer ID signing and Apple notarization. Earlier v0.1.x archives
+are not notarized; they are not replaced or republished under their old numbers.
 
 ## Architecture
 
@@ -112,18 +119,24 @@ Launch **Codex Voice 3**. It starts the localhost SSH tunnel, keeps it alive and
 
 On first use, macOS may request Input Monitoring permission. The app observes Option without consuming or modifying the event, so Codex still receives its normal push-to-talk shortcut.
 
-Because v0.1 is not notarized, macOS may ask you to confirm the first launch through Finder before the guided installer can appear. Always verify that the archive came from this repository and compare its published SHA-256 checksum before opening it.
+Moving from v0.1.x to v0.2.0 requires one manual installation to bootstrap the
+updater. Always verify that the archive came from this repository and compare
+its published SHA-256 checksum. Developer ID signing and notarization do not
+grant Input Monitoring permission; macOS may ask you to authorize Option again.
 
 ## Using it
 
 - Left-click the halo to open controls.
 - Click anywhere outside the popover to dismiss it.
 - Press Option while audio is playing to abandon the current reading and its queued fragments.
+- Click the main task name to select a conversation; use the small arrows to replay a paragraph.
+- Parallel notifications wait ten seconds after foreground speech. One interruption cancels the whole batch, including its remaining entries.
 - Switch **Voix active** off before leaving long-running overnight tasks.
 - Adjust the actual Mac mini output volume with the volume slider.
 - Open **Dictionnaire** to edit pronunciations in TextEdit. Saving synchronizes the live file to the Mac mini.
 - Click **Ouvrir le partage d’écran** to reach the configured Mac mini directly, including while Codex Voice is offline.
 - Right-click the halo to quit the MacBook controller.
+- Choose **Rechercher une mise à jour…** to check GitHub and explicitly install an available controller update.
 
 An interruption is not a pause: speech never resumes automatically. The full answer remains visible in Codex.
 
@@ -143,7 +156,40 @@ CODEX_VOICE_SIGNING_IDENTITY="<certificate name or SHA-1>" Scripts/package-remot
 
 For repeatable releases, that value may instead be stored as the only line of the gitignored `.signing-identity.local` file on the build Mac. The file contains an identity reference, not the private key; the key remains protected by the macOS Keychain.
 
-The package script creates a versioned disk image such as `.build/Codex-Voice-3-v0.1.9-macOS.dmg` and a matching SHA-256 file. The DMG contains the signed application, which offers guided installation, plus an Applications shortcut as a manual fallback. The project currently has 67 automated tests around ingestion, task-title updates, ordering, orchestration, audio coordination, authentication, remote settings, pronunciation handling, SSH configuration, installation, deduplication and token permissions.
+The package script creates a versioned disk image such as `.build/Codex-Voice-3-v0.2.0-macOS.dmg` and a matching SHA-256 file. The DMG contains the signed application, which offers guided installation, plus an Applications shortcut as a manual fallback. Automated tests cover ingestion, task-title updates, ordering, orchestration, audio coordination, authentication, remote settings, pronunciation handling, SSH configuration, installation, manual-update policy, deduplication and token permissions.
+
+For notarized releases, an explicit `CODEX_VOICE_DISTRIBUTION=1` mode
+requires a Developer ID Application identity and adds Hardened Runtime, secure
+timestamps and DMG signing. See [DISTRIBUTION.md](DISTRIBUTION.md) for private
+Keychain setup, notarization, final checksum generation and release checks. This
+preparation never changes an already published release.
+
+The app integrates **Rechercher une mise à jour…** using
+Sparkle 2.9.6. Checks and installations are manual, and update archives and the
+GitHub-hosted feed must be signed. This updates only the menu app, not the
+Mac mini service. The first updater-enabled release still needs a bootstrap
+installation. An isolated replacement/relaunch test passed. See
+[UPDATES.md](UPDATES.md) for publication order and bootstrap validation.
+
+### Multi-task reading in v0.2
+
+The app adds manual main-task selection, previous/next paragraph
+replay, up to five recent assistant messages per task, and grouped short
+notifications for parallel final responses. Notifications wait ten seconds
+after foreground speech and two seconds between entries; one interruption
+discards the whole notification batch. The current summary is a bounded local
+excerpt, not an AI rewrite, and sends no text to an external provider.
+
+The transcript reader consumes bounded chunks in a single forward scan and
+only bootstraps a bounded tail when an old journal returns. Historical context
+never selects a task or starts speech. Code and table blocks are represented
+by short spoken placeholders. The menu adds a larger speaker badge and a native
+translucent backdrop, with an opaque accessibility fallback.
+
+This batch requires both the Mac mini service and MacBook controller to be
+updated; Sparkle only updates the controller. Older peers retain existing
+controls but cannot expose the new selector/history commands. See
+[BATCH-VALIDATION.md](BATCH-VALIDATION.md) before deploying.
 
 ## Pronunciation dictionary and GitHub
 
@@ -171,7 +217,7 @@ This keeps GitHub useful as a lightweight reference store without making source 
 - The public reference dictionary is reviewed and committed explicitly; the mutable runtime file is not uploaded automatically.
 - The SSH target is read from the MacBook's private `~/.codex-voice/.env`, validated before it becomes a process argument, and never included in the release.
 - The managed SSH process accepts key-based authentication only and forwards loopback port `48731` to the same loopback port on the Mac mini.
-- Published updates are signed with the same persistent identity from v0.1.5 onward, avoiding a new privacy identity for every binary revision.
+- Releases v0.1.5–v0.1.9 use a persistent development identity; v0.2.0 switches to Developer ID. This is separate from macOS privacy permissions and does not guarantee that Input Monitoring will never need reauthorization.
 - The remote API controls voice only; it does not expose arbitrary Codex operations.
 
 See [SECURITY.md](SECURITY.md) and [REMOTE-CONTROL.md](REMOTE-CONTROL.md) for the protocol and threat boundaries.
@@ -180,9 +226,8 @@ See [SECURITY.md](SECURITY.md) and [REMOTE-CONTROL.md](REMOTE-CONTROL.md) for th
 
 The foundations intentionally come before the richer experience. Planned work includes:
 
-- short, calm summaries when parallel tasks finish;
-- a global history of readable answer blocks and explicit replay;
-- spoken-text adaptation for long or code-heavy paragraphs;
+- richer summaries if local extraction proves insufficient in daily use;
+- further spoken-text adaptation for long technical paragraphs;
 - direct device pairing for a future iPad surface;
 - a lightweight iPad control surface.
 

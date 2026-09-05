@@ -4,6 +4,8 @@ public enum CodexEventOrigin: String, Sendable {
   case jsonlLifecycle
   case jsonlCompletedItem
   case jsonlResponseItem
+  /// Bounded historical context, never a trigger for automatic speech.
+  case transcriptHistory
   case sessionIndex
   case appServerSnapshot
 }

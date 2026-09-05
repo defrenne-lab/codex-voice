@@ -1,7 +1,10 @@
 import SwiftUI
 
 struct VoiceRemotePopoverView: View {
+  @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
   @ObservedObject var model: VoiceRemoteViewModel
+  @ObservedObject var updater: ApplicationUpdateController
+  let checkForUpdates: () -> Void
 
   var body: some View {
     VStack(spacing: 0) {
@@ -24,9 +27,53 @@ struct VoiceRemotePopoverView: View {
         Divider()
         optionPermissionSection
       }
+      Divider()
+      updateSection
     }
     .frame(width: 340)
-    .background(Color(nsColor: .windowBackgroundColor).opacity(0.94))
+    .background {
+      if reduceTransparency {
+        Color(nsColor: .windowBackgroundColor)
+      } else {
+        VoicePopoverBackdrop()
+          .overlay(Color(nsColor: .windowBackgroundColor).opacity(0.12))
+          .overlay(alignment: .top) {
+            LinearGradient(
+              colors: [.white.opacity(0.07), .clear], startPoint: .top, endPoint: .bottom
+            )
+            .allowsHitTesting(false)
+          }
+      }
+    }
+  }
+
+  private var updateSection: some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Button(action: checkForUpdates) {
+        HStack(spacing: 10) {
+          Image(systemName: "arrow.triangle.2.circlepath")
+            .font(.system(size: 13, weight: .medium))
+            .frame(width: 20)
+          Text("Rechercher une mise à jour…")
+            .font(.system(size: 12, weight: .medium))
+          Spacer(minLength: 0)
+        }
+        .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+      .disabled(!updater.canCheckForUpdates)
+      .help(
+        updater.unavailabilityReason
+          ?? "Mettre à jour cette app ; le service du Mac mini reste inchangé.")
+      if let reason = updater.unavailabilityReason {
+        Text(reason)
+          .font(.system(size: 10))
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+    }
+    .padding(.horizontal, 18)
+    .padding(.vertical, 11)
   }
 
   private var header: some View {
@@ -62,14 +109,56 @@ struct VoiceRemotePopoverView: View {
         .foregroundStyle(model.isReading ? Color.accentColor : Color.secondary)
         .frame(width: 34)
 
-      VStack(alignment: .leading, spacing: 3) {
-        Text(model.isReading ? "Lecture en cours" : "En attente")
+      VStack(alignment: .leading, spacing: 6) {
+        Text(model.readingStatus)
           .font(.system(size: 13, weight: .medium))
           .foregroundStyle(model.isReading ? Color.accentColor : Color.secondary)
-        Text(model.readingTitle)
-          .font(.system(size: 15, weight: .medium))
           .lineLimit(1)
-          .truncationMode(.tail)
+        Menu {
+          ForEach(model.conversations) { conversation in
+            Button(action: { model.selectConversation(conversation) }) {
+              if conversation.threadID == model.mainConversation?.threadID {
+                Label(conversation.threadTitle ?? "Conversation Codex", systemImage: "checkmark")
+              } else {
+                Text(conversation.threadTitle ?? "Conversation Codex")
+              }
+            }
+          }
+        } label: {
+          Text(model.mainConversationTitle)
+            .font(.system(size: 15, weight: .medium))
+            .lineLimit(1)
+            .truncationMode(.tail)
+        }
+        .menuStyle(.borderlessButton)
+        .disabled(!model.controlsEnabled || model.conversations.isEmpty)
+        .accessibilityLabel("Conversation principale")
+        .help("Choisir la tâche qui a la parole, sans lui envoyer de message.")
+        HStack(spacing: 12) {
+          Button(action: { model.navigateHistory(forward: false) }) {
+            Image(systemName: "arrow.left").frame(width: 22, height: 20)
+          }
+          .disabled(!model.canGoPrevious)
+          .help("Réécouter le bloc précédent")
+          .accessibilityLabel("Bloc précédent")
+          Button(action: { model.navigateHistory(forward: true) }) {
+            Image(systemName: "arrow.right").frame(width: 22, height: 20)
+          }
+          .disabled(!model.canGoNext)
+          .help("Réécouter le bloc suivant")
+          .accessibilityLabel("Bloc suivant")
+          if let history = model.historyState, history.blockCount > 0 {
+            Text(
+              history.selectedBlock.map { "\($0) / \(history.blockCount)" }
+                ?? "\(history.blockCount) blocs"
+            )
+            .font(.system(size: 10))
+            .foregroundStyle(.secondary)
+            .monospacedDigit()
+          }
+        }
+        .buttonStyle(.borderless)
+        .font(.system(size: 12, weight: .semibold))
       }
       Spacer(minLength: 0)
     }
@@ -323,7 +412,7 @@ struct VoiceHaloIcon: View {
 
       Circle()
         .fill(coreColor)
-        .frame(width: 18, height: 18)
+        .frame(width: 20.5, height: 20.5)
         .overlay {
           Circle()
             .stroke(borderColor, lineWidth: state == .disconnected ? 1.5 : 0.7)
@@ -334,12 +423,12 @@ struct VoiceHaloIcon: View {
         )
 
       Image(systemName: symbolName)
-        .font(.system(size: 8.5, weight: .semibold))
+        .font(.system(size: 11, weight: .semibold))
         .symbolRenderingMode(.monochrome)
         .foregroundStyle(symbolColor)
         .offset(x: 0.25)
     }
-    .frame(width: 30, height: 22)
+    .frame(width: 28, height: 22)
     .fixedSize()
     .accessibilityLabel(accessibilityLabel)
   }
@@ -383,4 +472,16 @@ struct VoiceHaloIcon: View {
     case .disconnected: return "Codex Voice déconnecté"
     }
   }
+}
+
+/// Native backdrop blur, with a solid SwiftUI fallback for Reduce Transparency.
+struct VoicePopoverBackdrop: NSViewRepresentable {
+  func makeNSView(context: Context) -> NSVisualEffectView {
+    let view = NSVisualEffectView()
+    view.material = .popover
+    view.blendingMode = .behindWindow
+    view.state = .active
+    return view
+  }
+  func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }

@@ -5,6 +5,65 @@ import XCTest
 
 @MainActor
 final class VoiceControlServiceTests: XCTestCase {
+  func testSelectionAndHistoryAreAuthenticatedAndDoNotLeakMessageTextInState() throws {
+    let driver = ControlFakeSpeechDriver()
+    let audio = VoiceAudioCoordinator(driver: driver, defaultSettings: .init(isEnabled: true))
+    let reading = VoiceReadingSession(audio: audio)
+    let composite = CompositeCodexEventSource()
+    reading.process(
+      composite.ingest(
+        .init(
+          timestamp: nil, origin: .transcriptHistory,
+          authority: .jsonlCompleted,
+          payload: .assistantMessageCompleted(
+            .init(
+              threadID: "recent", turnID: "turn", itemID: "message", phase: .finalAnswer,
+              text: "Texte privé non transmis dans l’état.")))))
+    let service = VoiceControlService(
+      authorizationToken: token, audio: audio,
+      systemVolume: ControlFakeSystemVolume(),
+      pronunciationDictionary: ControlFakePronunciationDictionary(content: "source,replacement\n"),
+      readingSession: reading)
+    let denied = service.handle(
+      request(sequence: 1, authorization: "wrong", command: .selectConversation("recent")))
+    XCTAssertEqual(denied.message.status, .rejected)
+    XCTAssertNil(reading.mainConversation)
+    let selected = service.handle(request(sequence: 2, command: .selectConversation("recent")))
+    XCTAssertEqual(selected.message.state?.mainConversation?.threadID, "recent")
+    XCTAssertTrue(driver.requests.isEmpty)
+    let replayed = service.handle(request(sequence: 3, command: .previousBlock))
+    XCTAssertEqual(replayed.message.actionPerformed, true)
+    XCTAssertEqual(driver.requests.last?.text, "Texte privé non transmis dans l’état.")
+    let count = driver.requests.count
+    XCTAssertEqual(
+      service.handle(request(sequence: 3, command: .previousBlock)).message.status, .duplicate)
+    XCTAssertEqual(driver.requests.count, count)
+    let wire = String(
+      decoding: try JSONEncoder().encode(service.stateChangedMessage()), as: UTF8.self)
+    XCTAssertFalse(wire.contains("Texte privé"))
+    XCTAssertFalse(wire.contains(token))
+    XCTAssertLessThan(wire.utf8.count, VoiceControlProtocol.maximumMessageBytes)
+    XCTAssertEqual(
+      service.handle(request(sequence: 4, command: .selectConversation("absent"))).message.status,
+      .rejected)
+  }
+
+  func testOldStateDecodesWithoutHistoryAndMissingSessionRejectsNewCommandsClearly() throws {
+    let fixture = makeFixture()
+    var state = try XCTUnwrap(
+      JSONSerialization.jsonObject(with: JSONEncoder().encode(fixture.service.state))
+        as? [String: Any])
+    state.removeValue(forKey: "conversations")
+    state.removeValue(forKey: "history")
+    let decoded = try JSONDecoder().decode(
+      VoiceControlState.self, from: JSONSerialization.data(withJSONObject: state))
+    XCTAssertNil(decoded.conversations)
+    XCTAssertNil(decoded.history)
+    XCTAssertEqual(
+      fixture.service.handle(request(sequence: 1, command: .previousBlock)).message.error?.code,
+      "featureUnavailable")
+  }
+
   func testProtocolRequestRoundTripsThroughJSON() throws {
     let request = VoiceControlRequest(
       clientID: "macbook",
@@ -23,7 +82,8 @@ final class VoiceControlServiceTests: XCTestCase {
       command: .setVoiceIdentifier(testVoices[1].identifier)
     )
     let voiceData = try JSONEncoder().encode(voiceRequest)
-    XCTAssertEqual(try JSONDecoder().decode(VoiceControlRequest.self, from: voiceData), voiceRequest)
+    XCTAssertEqual(
+      try JSONDecoder().decode(VoiceControlRequest.self, from: voiceData), voiceRequest)
   }
 
   func testUnauthorizedRequestNeverExposesState() {

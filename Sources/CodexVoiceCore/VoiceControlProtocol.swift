@@ -18,6 +18,9 @@ public enum VoiceControlCommandKind: String, Codable, Sendable {
   case setVoiceIdentifier
   case getPronunciationDictionary
   case setPronunciationDictionary
+  case selectConversation
+  case previousBlock
+  case nextBlock
 }
 
 public struct VoiceControlCommand: Codable, Equatable, Sendable {
@@ -40,6 +43,12 @@ public struct VoiceControlCommand: Codable, Equatable, Sendable {
 
   public static let getState = VoiceControlCommand(kind: .getState)
   public static let interruptAudio = VoiceControlCommand(kind: .interruptAudio)
+  public static let previousBlock = VoiceControlCommand(kind: .previousBlock)
+  public static let nextBlock = VoiceControlCommand(kind: .nextBlock)
+
+  public static func selectConversation(_ threadID: String) -> VoiceControlCommand {
+    VoiceControlCommand(kind: .selectConversation, stringValue: threadID)
+  }
 
   public static func setVoiceEnabled(_ enabled: Bool) -> VoiceControlCommand {
     VoiceControlCommand(kind: .setVoiceEnabled, booleanValue: enabled)
@@ -108,7 +117,8 @@ public struct VoiceControlCurrentAudio: Codable, Equatable, Sendable {
   }
 }
 
-public struct VoiceControlConversation: Codable, Equatable, Sendable {
+public struct VoiceControlConversation: Codable, Equatable, Identifiable, Sendable {
+  public var id: String { threadID }
   public let threadID: String
   public let turnID: String
   public let threadTitle: String?
@@ -153,13 +163,18 @@ public struct VoiceControlState: Codable, Equatable, Sendable {
   public let mainConversation: VoiceControlConversation?
   public let queuedUnitCount: Int
   public let pendingResponseCount: Int
+  /// Optional fields keep old servers/clients compatible during rolling updates.
+  public let conversations: [VoiceControlConversation]?
+  public let history: VoiceHistoryNavigationState?
 
   public init(
     audio: VoiceAudioSnapshot,
     systemVolume: Float,
     pendingResponseCount: Int,
     mainConversation: VoiceControlConversation? = nil,
-    availableVoices: [VoiceControlVoice] = []
+    availableVoices: [VoiceControlVoice] = [],
+    conversations: [VoiceControlConversation]? = nil,
+    history: VoiceHistoryNavigationState? = nil
   ) {
     voiceEnabled = audio.settings.isEnabled
     muted = audio.settings.isMuted
@@ -171,6 +186,8 @@ public struct VoiceControlState: Codable, Equatable, Sendable {
     self.mainConversation = mainConversation
     queuedUnitCount = audio.queuedUnitCount
     self.pendingResponseCount = max(0, pendingResponseCount)
+    self.conversations = conversations
+    self.history = history
   }
 }
 

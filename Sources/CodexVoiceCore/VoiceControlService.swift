@@ -19,6 +19,7 @@ public final class VoiceControlService {
   private let pendingResponseCount: () -> Int
   private let mainConversation: () -> VoiceControlConversation?
   private let availableVoices: () -> [VoiceControlVoice]
+  private let readingSession: VoiceReadingSession?
   private var lastSequenceByClientID: [String: UInt64] = [:]
 
   public init(
@@ -28,7 +29,8 @@ public final class VoiceControlService {
     pronunciationDictionary: VoicePronunciationDictionaryManaging,
     pendingResponseCount: @escaping () -> Int = { 0 },
     mainConversation: @escaping () -> VoiceControlConversation? = { nil },
-    availableVoices: @escaping () -> [VoiceControlVoice] = { [] }
+    availableVoices: @escaping () -> [VoiceControlVoice] = { [] },
+    readingSession: VoiceReadingSession? = nil
   ) {
     self.authorizationToken = authorizationToken
     self.audio = audio
@@ -37,15 +39,18 @@ public final class VoiceControlService {
     self.pendingResponseCount = pendingResponseCount
     self.mainConversation = mainConversation
     self.availableVoices = availableVoices
+    self.readingSession = readingSession
   }
 
   public var state: VoiceControlState {
     VoiceControlState(
       audio: audio.snapshot,
       systemVolume: systemVolume.volume,
-      pendingResponseCount: pendingResponseCount(),
-      mainConversation: mainConversation(),
-      availableVoices: availableVoices()
+      pendingResponseCount: readingSession?.pendingNotificationCount ?? pendingResponseCount(),
+      mainConversation: readingSession?.mainConversation ?? mainConversation(),
+      availableVoices: availableVoices(),
+      conversations: readingSession?.conversations,
+      history: readingSession?.navigation
     )
   }
 
@@ -106,7 +111,25 @@ public final class VoiceControlService {
     case .getState:
       actionPerformed = false
     case .interruptAudio:
-      actionPerformed = audio.interrupt()
+      actionPerformed = readingSession?.interrupt() ?? audio.interrupt()
+    case .selectConversation:
+      guard let readingSession else {
+        return rejected(
+          request, code: "featureUnavailable", message: "Mettre à jour le service du Mac mini.",
+          authenticated: true)
+      }
+      guard let threadID = request.command.stringValue, !threadID.isEmpty,
+        threadID.utf8.count <= 512,
+        readingSession.selectConversation(threadID)
+      else { return invalidPayload(request, expected: "une conversation récente connue") }
+      actionPerformed = true
+    case .previousBlock, .nextBlock:
+      guard let readingSession else {
+        return rejected(
+          request, code: "featureUnavailable", message: "Mettre à jour le service du Mac mini.",
+          authenticated: true)
+      }
+      actionPerformed = readingSession.navigate(forward: request.command.kind == .nextBlock)
     case .setVoiceEnabled:
       guard let enabled = request.command.booleanValue else {
         return invalidPayload(request, expected: "booleanValue")

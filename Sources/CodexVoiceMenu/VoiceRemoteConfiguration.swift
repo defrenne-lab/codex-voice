@@ -31,18 +31,21 @@ struct VoiceRemoteConfiguration {
     environment: [String: String] = ProcessInfo.processInfo.environment,
     environmentFileURL: URL = VoiceEnvironmentFile.defaultURL
   ) -> VoiceRemoteConfiguration {
-    var resolvedEnvironment = (try? VoiceEnvironmentFile.load(from: environmentFileURL)) ?? [:]
+    var isPreview = arguments.contains("--preview") || environment["CODEX_VOICE_PREVIEW"] == "1"
+    // A preview must not even load the user's private connection configuration.
+    var resolvedEnvironment =
+      isPreview ? [:] : ((try? VoiceEnvironmentFile.load(from: environmentFileURL)) ?? [:])
     resolvedEnvironment.merge(environment) { _, processValue in processValue }
     var url = URL(
       string: resolvedEnvironment["CODEX_VOICE_REMOTE_URL"]
         ?? "ws://127.0.0.1:\(VoiceControlProtocol.defaultPort)/control"
     )!
-    var tokenFile = resolvedEnvironment["CODEX_VOICE_TOKEN_FILE"].map {
-      URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath).standardizedFileURL
-    } ?? VoiceControlTokenStore.defaultURL
+    var tokenFile =
+      resolvedEnvironment["CODEX_VOICE_TOKEN_FILE"].map {
+        URL(fileURLWithPath: ($0 as NSString).expandingTildeInPath).standardizedFileURL
+      } ?? VoiceControlTokenStore.defaultURL
     var deviceName = resolvedEnvironment["CODEX_VOICE_DEVICE_NAME"] ?? "Mac mini"
     let initialSSHTarget = resolvedEnvironment["CODEX_VOICE_SSH_TARGET"]
-    var isPreview = false
 
     var index = 1
     while index < arguments.count {

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+  <channel>
+    <title>Codex Voice 3</title>
+    <link>https://github.com/defrenne-lab/codex-voice</link>
+    <description>Mises à jour de l’application macOS Codex Voice 3.</description>
+    <language>fr</language>
+  </channel>
+</rss><!-- sparkle-signatures:
+edSignature: jn/8HXS32f4VRxqK0Lu3urTtb6JuG00Sfo/px0pVATiYAUWhkcbCuPiWmdaFCmjxZlruYpb1txdpY0NbBYTHAg==
+length: 617
+-->

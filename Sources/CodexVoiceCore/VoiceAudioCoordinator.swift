@@ -39,6 +39,8 @@ public struct VoiceAudioUnit: Equatable, Sendable {
   public let threadTitle: String?
   public let kind: VoiceSpeechKind
   public let text: String
+  public let blockID: String?
+  public let notificationCue: Bool
 
   public init(
     id: String,
@@ -48,7 +50,9 @@ public struct VoiceAudioUnit: Equatable, Sendable {
     itemID: String,
     threadTitle: String?,
     kind: VoiceSpeechKind,
-    text: String
+    text: String,
+    blockID: String? = nil,
+    notificationCue: Bool = false
   ) {
     self.id = id
     self.groupID = groupID
@@ -58,6 +62,8 @@ public struct VoiceAudioUnit: Equatable, Sendable {
     self.threadTitle = threadTitle
     self.kind = kind
     self.text = text
+    self.blockID = blockID
+    self.notificationCue = notificationCue
   }
 
   public init(speechRequest: VoiceSpeechRequest) {
@@ -79,17 +85,20 @@ public struct VoiceSpeechDriverRequest: Equatable, Sendable {
   public let text: String
   public let rate: Float
   public let voiceIdentifier: String?
+  public let notificationCue: Bool
 
   public init(
     unitID: String,
     text: String,
     rate: Float,
-    voiceIdentifier: String?
+    voiceIdentifier: String?,
+    notificationCue: Bool = false
   ) {
     self.unitID = unitID
     self.text = text
     self.rate = rate
     self.voiceIdentifier = voiceIdentifier
+    self.notificationCue = notificationCue
   }
 }
 
@@ -114,6 +123,7 @@ public enum VoiceAudioEnqueueResult: Equatable, Sendable {
   case ignoredDismissedGroup
   case ignoredDuplicate
   case ignoredEmptyText
+  case ignoredQueueFull
 }
 
 public enum VoiceAudioDiscardReason: String, Sendable {
@@ -163,8 +173,8 @@ public final class VoiceAudioCoordinator {
   private let settingsStore: VoiceAudioSettingsStore?
   private var queue: [VoiceAudioUnit] = []
   private var currentUnit: VoiceAudioUnit?
-  private var acceptedUnitIDs: Set<String> = []
-  private var dismissedGroupIDs: Set<String> = []
+  private var acceptedUnitIDs = BoundedIdentitySet()
+  private var dismissedGroupIDs = BoundedIdentitySet(capacity: 2_048)
 
   public private(set) var settings: VoiceAudioSettings
   public var eventHandler: ((VoiceAudioCoordinatorEvent) -> Void)?
@@ -205,6 +215,7 @@ public final class VoiceAudioCoordinator {
     guard settings.isEnabled else { return .ignoredVoiceDisabled }
     guard !settings.isMuted else { return .ignoredMuted }
     guard !dismissedGroupIDs.contains(unit.groupID) else { return .ignoredDismissedGroup }
+    guard queue.count < 256 else { return .ignoredQueueFull }
     guard acceptedUnitIDs.insert(unit.id).inserted else { return .ignoredDuplicate }
 
     queue.append(unit)
@@ -266,7 +277,8 @@ public final class VoiceAudioCoordinator {
         unitID: unit.id,
         text: unit.text,
         rate: settings.rate,
-        voiceIdentifier: settings.voiceIdentifier
+        voiceIdentifier: settings.voiceIdentifier,
+        notificationCue: unit.notificationCue
       )
     )
     eventHandler?(.unitStarted(unit))

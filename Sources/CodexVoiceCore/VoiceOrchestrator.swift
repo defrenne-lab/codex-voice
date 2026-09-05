@@ -23,6 +23,8 @@ public struct VoiceMainConversationChange: Equatable, Sendable {
 public enum VoiceSpeechKind: String, Sendable {
   case commentary
   case finalAnswer
+  case history
+  case notification
 }
 
 public struct VoiceSpeechRequest: Equatable, Sendable {
@@ -100,17 +102,26 @@ public struct VoiceThreadSnapshot: Equatable, Sendable {
   public let title: String?
   public let latestUserTurnID: String?
   public let pendingResponseCount: Int
+  public let latestTurnID: String?
+  public let lastActivity: Date?
+  public let hasTranscript: Bool
 
   public init(
     threadID: String,
     title: String?,
     latestUserTurnID: String?,
-    pendingResponseCount: Int
+    pendingResponseCount: Int,
+    latestTurnID: String? = nil,
+    lastActivity: Date? = nil,
+    hasTranscript: Bool = false
   ) {
     self.threadID = threadID
     self.title = title
     self.latestUserTurnID = latestUserTurnID
     self.pendingResponseCount = pendingResponseCount
+    self.latestTurnID = latestTurnID ?? latestUserTurnID
+    self.lastActivity = lastActivity
+    self.hasTranscript = hasTranscript
   }
 }
 
@@ -144,7 +155,11 @@ public final class VoiceOrchestrator {
 
     mutating func store(_ message: CodexAssistantMessage) {
       if messagesByID[message.itemID] == nil { messageOrder.append(message.itemID) }
-      messagesByID[message.itemID] = message
+      messagesByID[message.itemID] = CodexAssistantMessage(
+        threadID: message.threadID,
+        turnID: message.turnID, itemID: message.itemID, phase: message.phase,
+        text: String(message.text.prefix(65_536)))
+      while messageOrder.count > 8 { messagesByID[messageOrder.removeFirst()] = nil }
     }
 
     var finalCandidate: CodexAssistantMessage? {
@@ -163,6 +178,9 @@ public final class VoiceOrchestrator {
   private struct ThreadState {
     var title: String?
     var latestUserTurnID: String?
+    var latestTurnID: String?
+    var lastActivity: Date?
+    var hasTranscript = false
     var turns: [String: TurnState] = [:]
   }
 
@@ -172,10 +190,12 @@ public final class VoiceOrchestrator {
   }
 
   private var threads: [String: ThreadState] = [:]
+  private var titles: [String: String] = [:]
+  private var titleIdentities = BoundedIdentitySet(capacity: 2_048)
   private var pendingMarkers: [PendingMarker] = []
   private var pendingKeys: Set<TurnKey> = []
-  private var dispatchedItemKeys: Set<String> = []
-  private var handledLiveIdentities: Set<String> = []
+  private var dispatchedItemKeys = BoundedIdentitySet()
+  private var handledLiveIdentities = BoundedIdentitySet()
   private var mainSelectionTimestamp: Date?
 
   public private(set) var mainConversation: VoiceConversationReference?
@@ -187,9 +207,12 @@ public final class VoiceOrchestrator {
     let threadSnapshots = threads.map { threadID, state in
       VoiceThreadSnapshot(
         threadID: threadID,
-        title: state.title,
+        title: state.title ?? titles[threadID],
         latestUserTurnID: state.latestUserTurnID,
-        pendingResponseCount: pending.filter { $0.threadID == threadID }.count
+        pendingResponseCount: pending.filter { $0.threadID == threadID }.count,
+        latestTurnID: state.latestTurnID,
+        lastActivity: state.lastActivity,
+        hasTranscript: state.hasTranscript
       )
     }.sorted { $0.threadID < $1.threadID }
     return VoiceOrchestratorSnapshot(
@@ -202,13 +225,26 @@ public final class VoiceOrchestrator {
   public func process(_ ingestion: CompositeIngestion) -> [VoiceOrchestratorEffect] {
     let canonical = ingestion.event
     let observed = ingestion.observation
+    if observed.origin == .transcriptHistory { handledLiveIdentities.insert(observed.identityKey) }
     let isLiveObservation =
       observed.origin != .appServerSnapshot
       && observed.origin != .sessionIndex
+      && observed.origin != .transcriptHistory
       && handledLiveIdentities.insert(observed.identityKey).inserted
 
-    guard ingestion.stateChanged || isLiveObservation else { return [] }
+    // Rehydrate bounded state even if the canonical merger already knows this
+    // historical identity (or a higher-authority title came from the index).
+    guard ingestion.stateChanged || isLiveObservation || observed.origin == .transcriptHistory
+    else { return [] }
     applyState(from: canonical.payload)
+    if observed.origin != .sessionIndex {
+      threads[canonical.payload.threadID]?.hasTranscript = true
+    }
+    if let timestamp = canonical.timestamp {
+      let previous = threads[canonical.payload.threadID]?.lastActivity ?? .distantPast
+      threads[canonical.payload.threadID]?.lastActivity = max(previous, timestamp)
+    }
+    trimState(keeping: canonical.payload.threadID)
     guard isLiveObservation else { return [] }
 
     switch canonical.payload {
@@ -218,7 +254,21 @@ public final class VoiceOrchestrator {
       return routeNewMessage(message)
     case .turnCompleted(let completion):
       return routeCompletedTurn(completion, timestamp: observed.timestamp)
-    case .threadObserved, .turnStarted:
+    case .turnStarted(let turn):
+      if let timestamp = observed.timestamp, let selectedAt = mainSelectionTimestamp,
+        timestamp < selectedAt
+      {
+        return []
+      }
+      if mainConversation?.threadID == turn.threadID {
+        let previous = mainConversation
+        let next = VoiceConversationReference(threadID: turn.threadID, turnID: turn.turnID)
+        mainConversation = next
+        return previous == next
+          ? [] : [.mainConversationChanged(.init(previous: previous, current: next))]
+      }
+      return []
+    case .threadObserved:
       return []
     }
   }
@@ -231,21 +281,28 @@ public final class VoiceOrchestrator {
     switch payload {
     case .threadObserved(let metadata):
       var state = threads[metadata.threadID] ?? ThreadState()
-      if let title = metadata.title { state.title = title }
+      if let title = metadata.title {
+        state.title = String(title.prefix(512))
+        if let evicted = titleIdentities.insert(metadata.threadID).evicted { titles[evicted] = nil }
+        titles[metadata.threadID] = state.title
+      }
       threads[metadata.threadID] = state
     case .turnStarted(let turn):
       var state = threads[turn.threadID] ?? ThreadState()
+      state.latestTurnID = turn.turnID
       if state.turns[turn.turnID] == nil { state.turns[turn.turnID] = TurnState() }
       threads[turn.threadID] = state
     case .userMessageCompleted(let message):
       var state = threads[message.threadID] ?? ThreadState()
       state.latestUserTurnID = message.turnID
+      state.latestTurnID = message.turnID
       var turn = state.turns[message.turnID] ?? TurnState()
       turn.latestUserItemID = message.itemID
       state.turns[message.turnID] = turn
       threads[message.threadID] = state
     case .assistantMessageCompleted(let message):
       var state = threads[message.threadID] ?? ThreadState()
+      if state.latestTurnID == nil { state.latestTurnID = message.turnID }
       var turn = state.turns[message.turnID] ?? TurnState()
       turn.store(message)
       state.turns[message.turnID] = turn
@@ -256,6 +313,70 @@ public final class VoiceOrchestrator {
       turn.status = completion.status
       state.turns[completion.turnID] = turn
       threads[completion.threadID] = state
+    }
+  }
+
+  /// Local routing only: does not send a message to Codex or cancel an agent.
+  public func selectMainConversation(threadID: String, at date: Date = Date())
+    -> [VoiceOrchestratorEffect]?
+  {
+    guard let state = threads[threadID], state.hasTranscript || state.latestTurnID != nil else {
+      return nil
+    }
+    // An observed journal may have only tool output in its bounded tail. Select
+    // the task now; bind its turn when its next live message/lifecycle arrives.
+    let turnID = state.latestTurnID ?? ""
+    let previous = mainConversation
+    let next = VoiceConversationReference(threadID: threadID, turnID: turnID)
+    mainConversation = next
+    mainSelectionTimestamp = date
+    var effects: [VoiceOrchestratorEffect] = []
+    if previous != next {
+      effects.append(.mainConversationChanged(.init(previous: previous, current: next)))
+    }
+    let count = clearPendingResponses(for: threadID)
+    if count > 0 {
+      effects.append(.pendingResponsesCleared(.init(threadID: threadID, count: count)))
+    }
+    return effects
+  }
+
+  public func discardPendingResponses() {
+    pendingMarkers.removeAll(keepingCapacity: true)
+    pendingKeys.removeAll(keepingCapacity: true)
+  }
+
+  private func trimState(keeping threadID: String) {
+    if var state = threads[threadID], state.turns.count > 6 {
+      // Turn insertion order is not exposed by Dictionary. Protect the latest
+      // interaction and pending completions; remove only inactive contexts.
+      let protected = Set(
+        [
+          state.latestTurnID, state.latestUserTurnID,
+          mainConversation?.threadID == threadID ? mainConversation?.turnID : nil,
+        ].compactMap { $0 }
+      )
+      .union(pendingMarkers.filter { $0.key.threadID == threadID }.map { $0.key.turnID })
+      for key in state.turns.keys.sorted() where state.turns.count > 6 && !protected.contains(key) {
+        state.turns[key] = nil
+      }
+      threads[threadID] = state
+    }
+    if threads.count > 128 {
+      let oldest = threads.filter { $0.key != threadID && $0.key != mainConversation?.threadID }
+        .min {
+          if $0.value.hasTranscript != $1.value.hasTranscript { return !$0.value.hasTranscript }
+          return ($0.value.lastActivity ?? .distantPast) < ($1.value.lastActivity ?? .distantPast)
+        }?
+        .key
+      if let oldest {
+        threads[oldest] = nil
+        _ = clearPendingResponses(for: oldest)
+      }
+    }
+    if pendingMarkers.count > 64 {
+      let removed = pendingMarkers.removeFirst()
+      pendingKeys.remove(removed.key)
     }
   }
 
@@ -296,6 +417,9 @@ public final class VoiceOrchestrator {
       threadID: message.threadID,
       turnID: message.turnID
     )
+    if mainConversation?.threadID == message.threadID, mainConversation?.turnID == "" {
+      mainConversation = conversation
+    }
     guard conversation == mainConversation else { return [] }
 
     switch message.phase {
@@ -347,7 +471,7 @@ public final class VoiceOrchestrator {
           threadID: message.threadID,
           turnID: message.turnID,
           itemID: message.itemID,
-          threadTitle: threads[message.threadID]?.title,
+          threadTitle: threads[message.threadID]?.title ?? titles[message.threadID],
           kind: kind,
           text: message.text
         )
@@ -376,7 +500,7 @@ public final class VoiceOrchestrator {
       threadID: marker.key.threadID,
       turnID: marker.key.turnID,
       itemID: message.itemID,
-      threadTitle: threads[marker.key.threadID]?.title,
+      threadTitle: threads[marker.key.threadID]?.title ?? titles[marker.key.threadID],
       text: message.text,
       readyAt: marker.readyAt
     )

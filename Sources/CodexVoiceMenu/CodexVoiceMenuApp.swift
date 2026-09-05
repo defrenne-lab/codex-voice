@@ -31,12 +31,14 @@ private final class VoiceRemoteStatusItemController: NSObject, NSPopoverDelegate
   private var popover: NSPopover?
   private var outsideClickMonitor: Any?
   private var previouslyActiveApplication: NSRunningApplication?
+  private var updater: ApplicationUpdateController?
   private var cancellables: Set<AnyCancellable> = []
 
-  func install(model: VoiceRemoteViewModel) {
+  func install(model: VoiceRemoteViewModel, updater: ApplicationUpdateController) {
     guard statusItem == nil else { return }
+    self.updater = updater
 
-    let statusItem = NSStatusBar.system.statusItem(withLength: 28)
+    let statusItem = NSStatusBar.system.statusItem(withLength: 30)
     guard let button = statusItem.button else { return }
     button.target = self
     button.action = #selector(togglePopover)
@@ -45,8 +47,10 @@ private final class VoiceRemoteStatusItemController: NSObject, NSPopoverDelegate
     button.imageScaling = .scaleProportionallyDown
 
     let hostingController = NSHostingController(
-      rootView: VoiceRemotePopoverView(model: model)
-        .tint(Color(red: 0.12, green: 0.48, blue: 1))
+      rootView: VoiceRemotePopoverView(model: model, updater: updater) { [weak self] in
+        self?.checkForUpdates()
+      }
+      .tint(Color(red: 0.12, green: 0.48, blue: 1))
     )
     hostingController.view.frame.size.width = 340
     hostingController.view.layoutSubtreeIfNeeded()
@@ -98,6 +102,17 @@ private final class VoiceRemoteStatusItemController: NSObject, NSPopoverDelegate
 
   private func showContextMenu(for button: NSStatusBarButton, event: NSEvent) {
     let menu = NSMenu()
+    menu.autoenablesItems = false
+    let updateItem = NSMenuItem(
+      title: "Rechercher une mise à jour…",
+      action: #selector(checkForUpdates),
+      keyEquivalent: ""
+    )
+    updateItem.target = self
+    updateItem.isEnabled = updater?.canCheckForUpdates == true
+    updateItem.toolTip = updater?.unavailabilityReason
+    menu.addItem(updateItem)
+    menu.addItem(.separator())
     let quitItem = NSMenuItem(
       title: "Quitter Codex Voice 3",
       action: #selector(quitApplication),
@@ -106,6 +121,13 @@ private final class VoiceRemoteStatusItemController: NSObject, NSPopoverDelegate
     quitItem.target = self
     menu.addItem(quitItem)
     NSMenu.popUpContextMenu(menu, with: event, for: button)
+  }
+
+  @objc private func checkForUpdates() {
+    guard let updater, updater.canCheckForUpdates else { return }
+    popover?.performClose(nil)
+    NSApplication.shared.activate(ignoringOtherApps: true)
+    updater.checkForUpdates()
   }
 
   @objc private func quitApplication() {
@@ -162,7 +184,7 @@ private final class VoiceRemoteStatusItemController: NSObject, NSPopoverDelegate
     let renderer = ImageRenderer(content: VoiceHaloIcon(state: state))
     renderer.scale = NSScreen.main?.backingScaleFactor ?? 2
     guard let image = renderer.nsImage else { return }
-    image.size = NSSize(width: 26, height: 20)
+    image.size = NSSize(width: 28, height: 22)
     image.isTemplate = false
     button.image = image
     switch state {
@@ -181,13 +203,19 @@ private final class VoiceRemoteStatusItemController: NSObject, NSPopoverDelegate
 struct CodexVoiceMenuApp: App {
   @NSApplicationDelegateAdaptor(CodexVoiceAppDelegate.self) private var appDelegate
   @StateObject private var model: VoiceRemoteViewModel
+  @StateObject private var updater: ApplicationUpdateController
 
   init() {
     let model = VoiceRemoteViewModel()
+    let updater = ApplicationUpdateController(
+      configuration: .current(isPreview: model.configuration.isPreview)
+    )
     _model = StateObject(wrappedValue: model)
+    _updater = StateObject(wrappedValue: updater)
     CodexVoiceAppDelegate.launchHandler = {
-      VoiceRemoteStatusItemController.shared.install(model: model)
+      VoiceRemoteStatusItemController.shared.install(model: model, updater: updater)
       model.start()
+      updater.start()
     }
     CodexVoiceAppDelegate.terminationHandler = {
       model.shutdown()
@@ -195,8 +223,9 @@ struct CodexVoiceMenuApp: App {
     Task { @MainActor in
       try? await Task.sleep(nanoseconds: 500_000_000)
       guard !ApplicationInstaller.isInstalling else { return }
-      VoiceRemoteStatusItemController.shared.install(model: model)
+      VoiceRemoteStatusItemController.shared.install(model: model, updater: updater)
       model.start()
+      updater.start()
     }
   }
 

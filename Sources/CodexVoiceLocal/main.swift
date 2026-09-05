@@ -191,7 +191,8 @@ func runLocal() async throws {
     sessionsRoot: options.sessionsRoot,
     startPosition: .end,
     maximumTrackedFiles: options.maximumFiles,
-    includedThreadIDs: options.threadIDs
+    includedThreadIDs: options.threadIDs,
+    includeRecentHistory: true
   )
   let titleSource = SessionIndexThreadEventSource(
     fileURL: options.sessionsRoot.deletingLastPathComponent()
@@ -199,6 +200,7 @@ func runLocal() async throws {
   )
   let composite = CompositeCodexEventSource()
   let orchestrator = VoiceOrchestrator()
+  let readingSession = VoiceReadingSession(audio: audio, orchestrator: orchestrator)
   let controlServer: VoiceControlWebSocketServer?
   if options.controlServerEnabled {
     let token = try VoiceControlTokenStore.loadOrCreate(at: options.controlTokenFile)
@@ -220,7 +222,8 @@ func runLocal() async throws {
           threadTitle: snapshot.threads.first { $0.threadID == main.threadID }?.title
         )
       },
-      availableVoices: { installedVoices }
+      availableVoices: { installedVoices },
+      readingSession: readingSession
     )
     let server = VoiceControlWebSocketServer(service: service)
     server.eventHandler = { event in
@@ -239,14 +242,17 @@ func runLocal() async throws {
     controlServer = nil
   }
   if let controlServer {
-    audio.eventHandler = { [weak controlServer] event in
+    readingSession.eventHandler = { [weak controlServer] event in
       print("[audio] \(describe(event))")
       controlServer?.publishState()
     }
   } else {
-    audio.eventHandler = { print("[audio] \(describe($0))") }
+    readingSession.eventHandler = { print("[audio] \(describe($0))") }
   }
   try source.prime()
+  for ingestion in composite.ingest(source.takeRecentHistory()) {
+    readingSession.process(ingestion)
+  }
 
   print("Codex Voice local")
   print(
@@ -260,7 +266,6 @@ func runLocal() async throws {
   }
 
   var observedEvents = 0
-  var requestedUnits = 0
   var diagnostics = 0
   var nextTitlePoll = Date.distantPast
   let deadline = Date().addingTimeInterval(options.watchSeconds)
@@ -274,14 +279,13 @@ func runLocal() async throws {
       titleBatch = CodexEventBatch()
     }
     let batch = try source.poll()
-    let events = titleBatch.events + batch.events
+    let events = titleBatch.events + source.takeRecentHistory() + batch.events
     observedEvents += events.count
     diagnostics += titleBatch.diagnostics.count + batch.diagnostics.count
     for ingestion in composite.ingest(events) {
-      for effect in orchestrator.process(ingestion) {
-        if audio.handle(effect) != nil { requestedUnits += 1 }
-      }
+      readingSession.process(ingestion)
     }
+    readingSession.tick()
     if !events.isEmpty { controlServer?.publishState() }
 
     if options.runForever || Date() < deadline {
@@ -294,7 +298,7 @@ func runLocal() async throws {
   controlServer?.stop()
   audio.shutdown()
   print(
-    "Arrêt : \(observedEvents) événements, \(requestedUnits) demandes audio, \(diagnostics) diagnostics"
+    "Arrêt : \(observedEvents) événements, \(diagnostics) diagnostics"
   )
 }
 
