@@ -1,10 +1,10 @@
 # Backlog
 
-## Lot suivant — lecture structurée et historique à deux niveaux
+## Lot v0.3.0 — lecture structurée et historique à deux niveaux
 
-Implémenté localement le 7 septembre 2026, pas encore versionné, distribué ni
-installé sur le Mac mini ou le MacBook. Ce lot devra mettre à jour ensemble le
-service et le contrôleur.
+Préparé le 7 septembre 2026 en version 0.3.0/build 13. Ce lot met à jour
+ensemble le service du Mac mini et le contrôleur du MacBook ; le suivi de sa
+publication et de sa recette est consigné dans RELEASE-VALIDATION-0.3.0.md.
 
 - Les blocs encadrés conservent leur contenu dans l’ordre, une ligne par bloc,
   au lieu de la seule annonce « Bloc de code disponible à l’écran ».

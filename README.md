@@ -177,9 +177,9 @@ Mac mini service. The first updater-enabled release still needs a bootstrap
 installation. An isolated replacement/relaunch test passed. See
 [UPDATES.md](UPDATES.md) for publication order and bootstrap validation.
 
-### Multi-task reading in v0.2
+### Structured reading and two-level history in v0.3
 
-The app adds manual main-task selection, previous/next paragraph
+The app adds manual main-task selection, response-level and block-level
 replay, up to five recent assistant messages per task, and grouped short
 notifications for parallel final responses. Notifications wait ten seconds
 after foreground speech and two seconds between entries; one interruption
@@ -190,8 +190,10 @@ The transcript reader consumes bounded chunks in a single forward scan and
 only bootstraps a bounded tail when an old journal returns. Historical context
 never selects a task or starts speech. Current development sources preserve
 fenced text and code line by line and read Markdown tables row by row, while
-parallel summaries still exclude technical content. The menu adds a larger speaker badge and a native
-translucent backdrop, with an opaque accessibility fallback.
+parallel summaries still exclude technical content. Response navigation starts
+at the beginning of the selected answer; block navigation then remains inside
+that answer. The menu adds a larger speaker badge and a native translucent
+backdrop, with an opaque accessibility fallback.
 
 This batch requires both the Mac mini service and MacBook controller to be
 updated; Sparkle only updates the controller. Older peers retain existing
