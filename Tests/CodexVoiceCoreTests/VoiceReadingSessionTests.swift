@@ -113,6 +113,45 @@ final class VoiceReadingSessionTests: XCTestCase {
     XCTAssertEqual(test.driver.requests.last?.text, "Trois.")
   }
 
+  func testHistoryNavigatesResponsesThenBlocksWithinTheSelectedResponse() {
+    let test = SessionFixture()
+    test.answer("A", item: "first", text: "Première réponse.\n\nDeuxième bloc.", historical: true)
+    test.answer("A", item: "second", text: "Réponse récente.\n\nDétail récent.", historical: true)
+    XCTAssertTrue(test.session.selectConversation("A"))
+
+    var state = test.session.navigation
+    XCTAssertEqual(state.responseCount, 2)
+    XCTAssertNil(state.selectedResponse)
+    XCTAssertTrue(state.canGoPreviousResponse == true)
+    XCTAssertFalse(state.canGoPreviousBlockInResponse == true)
+
+    XCTAssertTrue(test.session.navigateResponse(forward: false))
+    XCTAssertEqual(test.driver.requests.last?.text, "Réponse récente.")
+    XCTAssertEqual(test.audio.snapshot.queuedUnitCount, 1)
+    state = test.session.navigation
+    XCTAssertEqual(state.selectedResponse, 2)
+    XCTAssertEqual(state.selectedResponseBlock, 1)
+    XCTAssertEqual(state.responseBlockCount, 2)
+    XCTAssertEqual(state.responsePreview, "Réponse récente.")
+
+    test.driver.finish()
+    XCTAssertEqual(test.driver.requests.last?.text, "Détail récent.")
+    state = test.session.navigation
+    XCTAssertEqual(state.selectedResponseBlock, 2)
+    XCTAssertTrue(state.canGoPreviousResponse == true)
+    XCTAssertTrue(test.session.navigateResponse(forward: false))
+    XCTAssertEqual(test.driver.requests.last?.text, "Réponse récente.")
+
+    XCTAssertTrue(test.session.navigateBlockInResponse(forward: true))
+    XCTAssertEqual(test.driver.requests.last?.text, "Détail récent.")
+    XCTAssertFalse(test.session.navigateBlockInResponse(forward: true))
+    XCTAssertTrue(test.session.navigateResponse(forward: false))
+    XCTAssertEqual(test.driver.requests.last?.text, "Réponse récente.")
+    XCTAssertTrue(test.session.navigateResponse(forward: false))
+    XCTAssertEqual(test.driver.requests.last?.text, "Première réponse.")
+    XCTAssertEqual(test.session.navigation.selectedResponse, 1)
+  }
+
   func testNotificationsWaitTenSecondsAfterLastMainBlockAndTwoBetweenSummaries() {
     let test = SessionFixture()
     test.user("A")
@@ -228,11 +267,42 @@ final class VoiceReadingSessionTests: XCTestCase {
   func testTechnicalBlocksAreRepresentedWithoutReadingCodeAndSummaryIsBounded() {
     let blocks = VoiceReadableText.blocks(
       "Résultat.\n\n```swift\nprint(\"secret\")\n```\n\nVoir [GitHub](https://example.com).")
-    XCTAssertEqual(blocks, ["Résultat.", "Bloc de code disponible à l’écran.", "Voir GitHub."])
+    XCTAssertEqual(blocks, ["Résultat.", "print(\"secret\")", "Voir GitHub."])
     let summary = VoiceReadableText.notificationSummary(
       String(repeating: "Les tests ont échoué et nécessitent une correction. ", count: 300))
     XCTAssertTrue(summary.contains("échoué"))
     XCTAssertLessThanOrEqual(summary.count, 181)
+  }
+
+  func testTextFencesAndMarkdownTablesKeepTheirUsefulContentInReadingOrder() {
+    let text = """
+      Avant.
+
+      ```text
+      Codex
+      ↓ ouvre un dossier
+      Dépôt Git local sur le Mac mini
+      ↕ synchronisé avec « origin »
+      ```
+
+      | Besoin | Solution proposée |
+      | :--- | ---: |
+      | Bibliothèque musicale | SwiftData et fichiers locaux |
+      | Connexion email + code | Supabase Auth |
+
+      Après.
+      """
+    XCTAssertEqual(
+      VoiceReadableText.blocks(text),
+      [
+        "Avant.", "Codex", "↓ ouvre un dossier", "Dépôt Git local sur le Mac mini",
+        "↕ synchronisé avec « origin »", "Besoin : Solution proposée",
+        "Bibliothèque musicale : SwiftData et fichiers locaux",
+        "Connexion email + code : Supabase Auth", "Après.",
+      ])
+    XCTAssertEqual(
+      VoiceReadableText.notificationSummary("```swift\nprint(\"secret\")\n```"),
+      "Une réponse est disponible à l’écran.")
   }
 
   func testUnknownFinalPhaseReplacesProgressWhenTurnCompletes() {

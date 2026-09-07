@@ -59,5 +59,22 @@ SHA-256 final :
 5. Naviguer à nouveau avec les flèches ; vérifier aussi qu’Option conserve son
    comportement habituel et que le bouton de recherche a son nouveau libellé.
 
-Le remplacement et le relancement réels sur le MacBook restent un test
-utilisateur ; ils ne sont pas déclarés validés par les tests isolés.
+Le 5 septembre 2026, l’utilisateur confirme le bon fonctionnement du processus
+de mise à jour sur le MacBook, du petit Stop et du bouton de recherche simplifié :
+« Donc tout est OK. » Cette validation d’usage complète les tests isolés ; elle
+ne constitue pas une inspection distante du numéro de version installé.
+
+## Observation audio après recette
+
+L’utilisateur signale une impression de coupure d’un message long lorsqu’une
+étape de réflexion apparaît, puis observe pendant la même discussion que la
+réflexion démarre avant la fin d’une phrase sans couper sa lecture. Le premier
+cas reste non reproduit ; aucune régression ni cause n’est confirmée.
+
+Lecture du code : les événements de raisonnement ne sont pas normalisés en
+commandes audio ; les nouveaux commentaires sont mis en file sans interrompre
+une lecture principale en cours. Un nouveau message utilisateur, un changement
+de conversation ou une commande explicite peuvent en revanche interrompre.
+Les traces audio consultées ne sont pas horodatées par événement et leur fin
+n’est pas à jour : elles ne permettent pas d’identifier l’incident rapporté.
+Aucun changement du moteur, redémarrage ou déploiement à la suite de ce signalement.

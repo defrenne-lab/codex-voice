@@ -23,8 +23,9 @@ advertises the signed and notarized v0.2.1 and v0.2.0 releases, not disposable t
 or earlier non-notarized versions. The isolated end-to-end test validated the
 update UI, rejection paths, actual replacement and self-relaunch. The first
 manual installation on the MacBook was confirmed by the user on 2026-09-05,
-along with the manual no-update check. v0.2.1 is the first follow-up release
-intended to test the production replacement/relaunch on that MacBook;
+along with the manual no-update check. For the first follow-up release, v0.2.1,
+the user also confirmed the production in-app update process on that MacBook
+and both UI changes (inline history Stop and simplified update button);
 see [RELEASE-VALIDATION-0.2.1.md](RELEASE-VALIDATION-0.2.1.md).
 See [BATCH-VALIDATION.md](BATCH-VALIDATION.md) for the combined release checks.
 

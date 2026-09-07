@@ -107,10 +107,42 @@ final class VoiceRemoteViewModel: ObservableObject {
   var canGoNext: Bool {
     controlsEnabled && voiceEnabled && !muted && historyState?.canGoNext == true
   }
+  var supportsResponseNavigation: Bool { historyState?.responseCount != nil }
+  var canGoPreviousResponse: Bool {
+    controlsEnabled && voiceEnabled && !muted
+      && historyState?.canGoPreviousResponse == true
+  }
+  var canGoNextResponse: Bool {
+    controlsEnabled && voiceEnabled && !muted
+      && historyState?.canGoNextResponse == true
+  }
+  var canGoPreviousBlockInResponse: Bool {
+    controlsEnabled && voiceEnabled && !muted
+      && historyState?.canGoPreviousBlockInResponse == true
+  }
+  var canGoNextBlockInResponse: Bool {
+    controlsEnabled && voiceEnabled && !muted
+      && historyState?.canGoNextBlockInResponse == true
+  }
+  var responseNavigationLabel: String {
+    guard let history = historyState, let count = history.responseCount, count > 0 else {
+      return "Aucune réponse"
+    }
+    guard let selected = history.selectedResponse else { return "\(count) réponses" }
+    let position = "\(selected) / \(count)"
+    guard let preview = history.responsePreview, !preview.isEmpty else { return position }
+    return "\(position) · \(preview)"
+  }
+  var blockInResponseNavigationLabel: String {
+    guard let history = historyState, let count = history.responseBlockCount, count > 0 else {
+      return "Choisir une réponse"
+    }
+    return history.selectedResponseBlock.map { "\($0) / \(count)" } ?? "\(count) blocs"
+  }
   var readingStatus: String {
     switch currentAudio?.kind {
     case "notification": return "Notification · \(readingTitle)"
-    case "history": return "Réécoute d’un bloc"
+    case "history": return "Réécoute"
     case .some: return "Lecture en cours"
     case nil: return "En attente"
     }
@@ -188,7 +220,12 @@ final class VoiceRemoteViewModel: ObservableObject {
       ]
       historyState = VoiceHistoryNavigationState(
         canGoPrevious: true, canGoNext: true,
-        blockCount: 12, selectedBlock: 8)
+        blockCount: 12, selectedBlock: 8,
+        canGoPreviousResponse: true, canGoNextResponse: true,
+        responseCount: 5, selectedResponse: 3,
+        responsePreview: "Les traitements sont terminés…",
+        canGoPreviousBlockInResponse: true, canGoNextBlockInResponse: true,
+        responseBlockCount: 4, selectedResponseBlock: 2)
       optionMonitoringAuthorized = true
       return
     }
@@ -272,6 +309,18 @@ final class VoiceRemoteViewModel: ObservableObject {
     guard forward ? canGoNext : canGoPrevious else { return }
     if configuration.isPreview { return }
     perform(forward ? .nextBlock : .previousBlock)
+  }
+
+  func navigateResponse(forward: Bool) {
+    guard forward ? canGoNextResponse : canGoPreviousResponse else { return }
+    if configuration.isPreview { return }
+    perform(forward ? .nextResponse : .previousResponse)
+  }
+
+  func navigateBlockInResponse(forward: Bool) {
+    guard forward ? canGoNextBlockInResponse : canGoPreviousBlockInResponse else { return }
+    if configuration.isPreview { return }
+    perform(forward ? .nextBlockInResponse : .previousBlockInResponse)
   }
 
   func requestOptionMonitoringAuthorization() {

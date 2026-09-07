@@ -59,7 +59,12 @@ Codex Voice is split into two small applications:
 1. **Voice Local** runs beside Codex on the Mac mini. It follows Codex session data, decides what is eligible to speak, owns the audio queue and exposes a narrowly scoped control API on `127.0.0.1`.
 2. **Voice Remote** lives in the MacBook menu bar. It reaches that API through SSH, displays the live state and turns Option into a universal “I am speaking now” command.
 
-The controller never receives the text being read. Remote state contains only operational metadata such as voice state, system volume, task title, reading kind and queue counts. The pronunciation dictionary crosses the control channel only when the user explicitly opens or saves it. The Codex App Server is never exposed on the network.
+The controller never receives a full answer. Remote state contains operational
+metadata such as voice state, system volume, task title, reading kind and queue
+counts, plus a bounded eight-word preview of the currently selected historical
+answer. The pronunciation dictionary crosses the control channel only when the
+user explicitly opens or saves it. The Codex App Server is never exposed on the
+network.
 
 ### Conversational Mac mini control
 
@@ -183,8 +188,9 @@ excerpt, not an AI rewrite, and sends no text to an external provider.
 
 The transcript reader consumes bounded chunks in a single forward scan and
 only bootstraps a bounded tail when an old journal returns. Historical context
-never selects a task or starts speech. Code and table blocks are represented
-by short spoken placeholders. The menu adds a larger speaker badge and a native
+never selects a task or starts speech. Current development sources preserve
+fenced text and code line by line and read Markdown tables row by row, while
+parallel summaries still exclude technical content. The menu adds a larger speaker badge and a native
 translucent backdrop, with an opaque accessibility fallback.
 
 This batch requires both the Mac mini service and MacBook controller to be

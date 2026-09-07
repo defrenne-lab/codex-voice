@@ -1,5 +1,29 @@
 # Backlog
 
+## Lot suivant — lecture structurée et historique à deux niveaux
+
+Implémenté localement le 7 septembre 2026, pas encore versionné, distribué ni
+installé sur le Mac mini ou le MacBook. Ce lot devra mettre à jour ensemble le
+service et le contrôleur.
+
+- Les blocs encadrés conservent leur contenu dans l’ordre, une ligne par bloc,
+  au lieu de la seule annonce « Bloc de code disponible à l’écran ».
+- Les tableaux Markdown sont lus ligne par ligne ; les cellules sont séparées
+  par une pause exprimée par « : » et la ligne syntaxique de séparation est ignorée.
+- Les notifications annexes continuent de sélectionner uniquement du texte
+  courant : elles ne prennent pas une ligne de code ou de tableau comme résumé.
+- L’historique expose deux niveaux synchronisés. La ligne « Réponse » navigue
+  parmi les cinq messages conservés et relit la réponse choisie depuis son
+  premier bloc. La ligne « Bloc » reste limitée à cette réponse. La position
+  suit le bloc réellement commencé, et le Stop existant conserve la sélection.
+- L’état authentifié transmet seulement un aperçu borné aux huit premiers mots
+  de la réponse sélectionnée afin de l’identifier dans la popover, jamais son
+  texte complet. Les nouveaux champs et commandes sont additifs ; l’ancienne
+  navigation reste disponible pour une transition de versions.
+- 106 tests Swift passent. Un rendu SwiftUI hors ligne a été inspecté : les
+  deux lignes, leurs compteurs, l’aperçu tronqué et le Stop restent lisibles
+  dans la largeur existante de 340 points.
+
 ## Lot v0.2.1 — livré
 
 Le 5 septembre 2026, après la recette de v0.2.0, l’utilisateur demande une petite
@@ -7,7 +31,8 @@ version pour le bouton Stop, puis y ajoute la présentation de la recherche de
 mise à jour. Périmètre : les deux changements d’interface ci-dessous seulement.
 Le service Mac mini reste inchangé. La v0.2.1/build 12 est publiée sur GitHub
 avec son DMG notarié et son catalogue Sparkle signé, vérifiés après téléchargement
-public. Le remplacement réel depuis v0.2.0 reste à confirmer sur le MacBook.
+public. L’utilisateur a depuis confirmé le processus de mise à jour sur le
+MacBook, le petit Stop et la présentation du bouton de recherche.
 Suivi dans RELEASE-VALIDATION-0.2.1.md.
 
 ### Arrêter une relecture sans fermer la popover
@@ -31,6 +56,17 @@ recherche permanente. Retouche ajoutée à v0.2.1 à sa demande.
 - Ne montrer un éventuel indicateur d’activité que pendant une recherche réellement déclenchée ; conserver le fonctionnement manuel existant.
 
 ## Prochaines versions — retours d’usage
+
+### Coupure audio isolée à confirmer
+
+Le 5 septembre 2026, impression de coupure d’un message long à l’apparition
+d’une étape de réflexion. Le contre-test immédiat de l’utilisateur fonctionne :
+la réflexion commence avant la fin de la phrase, sans interruption audio.
+Régression non confirmée, aucun correctif ni déploiement entrepris. Si le cas
+revient, relever la tâche, l’heure et si l’arrêt survient au milieu d’une phrase
+ou entre deux blocs, pour distinguer interruption, fin de bloc et sortie audio.
+La lecture du code et les limites des traces disponibles sont consignées dans
+RELEASE-VALIDATION-0.2.1.md.
 
 ### Ne pas dicter les adresses web
 

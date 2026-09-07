@@ -130,6 +130,22 @@ public final class VoiceControlService {
           authenticated: true)
       }
       actionPerformed = readingSession.navigate(forward: request.command.kind == .nextBlock)
+    case .previousResponse, .nextResponse:
+      guard let readingSession else {
+        return rejected(
+          request, code: "featureUnavailable", message: "Mettre à jour le service du Mac mini.",
+          authenticated: true)
+      }
+      actionPerformed = readingSession.navigateResponse(
+        forward: request.command.kind == .nextResponse)
+    case .previousBlockInResponse, .nextBlockInResponse:
+      guard let readingSession else {
+        return rejected(
+          request, code: "featureUnavailable", message: "Mettre à jour le service du Mac mini.",
+          authenticated: true)
+      }
+      actionPerformed = readingSession.navigateBlockInResponse(
+        forward: request.command.kind == .nextBlockInResponse)
     case .setVoiceEnabled:
       guard let enabled = request.command.booleanValue else {
         return invalidPayload(request, expected: "booleanValue")

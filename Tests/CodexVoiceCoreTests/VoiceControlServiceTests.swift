@@ -5,7 +5,7 @@ import XCTest
 
 @MainActor
 final class VoiceControlServiceTests: XCTestCase {
-  func testSelectionAndHistoryAreAuthenticatedAndDoNotLeakMessageTextInState() throws {
+  func testSelectionAndHistoryAreAuthenticatedAndExposeOnlyABoundedResponsePreview() throws {
     let driver = ControlFakeSpeechDriver()
     let audio = VoiceAudioCoordinator(driver: driver, defaultSettings: .init(isEnabled: true))
     let reading = VoiceReadingSession(audio: audio)
@@ -17,8 +17,17 @@ final class VoiceControlServiceTests: XCTestCase {
           authority: .jsonlCompleted,
           payload: .assistantMessageCompleted(
             .init(
+              threadID: "recent", turnID: "older-turn", itemID: "older-message",
+              phase: .finalAnswer, text: "Réponse antérieure.")))))
+    reading.process(
+      composite.ingest(
+        .init(
+          timestamp: nil, origin: .transcriptHistory,
+          authority: .jsonlCompleted,
+          payload: .assistantMessageCompleted(
+            .init(
               threadID: "recent", turnID: "turn", itemID: "message", phase: .finalAnswer,
-              text: "Texte privé non transmis dans l’état.")))))
+              text: "Texte privé non transmis dans l’état avec plusieurs détails confidentiels.")))))
     let service = VoiceControlService(
       authorizationToken: token, audio: audio,
       systemVolume: ControlFakeSystemVolume(),
@@ -31,20 +40,29 @@ final class VoiceControlServiceTests: XCTestCase {
     let selected = service.handle(request(sequence: 2, command: .selectConversation("recent")))
     XCTAssertEqual(selected.message.state?.mainConversation?.threadID, "recent")
     XCTAssertTrue(driver.requests.isEmpty)
-    let replayed = service.handle(request(sequence: 3, command: .previousBlock))
+    let responseReplay = service.handle(request(sequence: 3, command: .previousResponse))
+    XCTAssertEqual(responseReplay.message.actionPerformed, true)
+    XCTAssertEqual(
+      driver.requests.last?.text,
+      "Texte privé non transmis dans l’état avec plusieurs détails confidentiels.")
+    XCTAssertEqual(
+      responseReplay.message.state?.history?.responsePreview,
+      "Texte privé non transmis dans l’état avec plusieurs…")
+    let replayed = service.handle(request(sequence: 4, command: .previousBlock))
     XCTAssertEqual(replayed.message.actionPerformed, true)
-    XCTAssertEqual(driver.requests.last?.text, "Texte privé non transmis dans l’état.")
+    XCTAssertEqual(driver.requests.last?.text, "Réponse antérieure.")
     let count = driver.requests.count
     XCTAssertEqual(
-      service.handle(request(sequence: 3, command: .previousBlock)).message.status, .duplicate)
+      service.handle(request(sequence: 4, command: .previousBlock)).message.status, .duplicate)
     XCTAssertEqual(driver.requests.count, count)
     let wire = String(
       decoding: try JSONEncoder().encode(service.stateChangedMessage()), as: UTF8.self)
-    XCTAssertFalse(wire.contains("Texte privé"))
+    XCTAssertTrue(wire.contains("responsePreview"))
+    XCTAssertFalse(wire.contains("plusieurs détails confidentiels"))
     XCTAssertFalse(wire.contains(token))
     XCTAssertLessThan(wire.utf8.count, VoiceControlProtocol.maximumMessageBytes)
     XCTAssertEqual(
-      service.handle(request(sequence: 4, command: .selectConversation("absent"))).message.status,
+      service.handle(request(sequence: 5, command: .selectConversation("absent"))).message.status,
       .rejected)
   }
 
@@ -62,6 +80,22 @@ final class VoiceControlServiceTests: XCTestCase {
     XCTAssertEqual(
       fixture.service.handle(request(sequence: 1, command: .previousBlock)).message.error?.code,
       "featureUnavailable")
+  }
+
+  func testLegacyHistoryStateDecodesWithoutHierarchicalNavigationFields() throws {
+    let legacy: [String: Any] = [
+      "canGoPrevious": true,
+      "canGoNext": false,
+      "blockCount": 3,
+      "selectedBlock": 2,
+    ]
+    let decoded = try JSONDecoder().decode(
+      VoiceHistoryNavigationState.self,
+      from: JSONSerialization.data(withJSONObject: legacy))
+    XCTAssertEqual(decoded.blockCount, 3)
+    XCTAssertEqual(decoded.selectedBlock, 2)
+    XCTAssertNil(decoded.responseCount)
+    XCTAssertNil(decoded.canGoPreviousResponse)
   }
 
   func testProtocolRequestRoundTripsThroughJSON() throws {

@@ -126,6 +126,44 @@ public final class VoiceReadingSession {
   }
 
   @discardableResult
+  public func navigateResponse(forward: Bool) -> Bool {
+    guard audio.settings.isEnabled, !audio.settings.isMuted,
+      let main = mainConversation,
+      let blocks = history.navigateResponse(
+        threadID: main.threadID, forward: forward, liveBlockID: currentMainBlockID)
+    else { return false }
+    _ = interrupt()
+    let groupID = "history-response|\(UUID().uuidString)"
+    var accepted = false
+    for block in blocks {
+      let result = audio.enqueue(
+        VoiceAudioUnit(
+          id: "\(groupID)|\(block.id)", groupID: groupID,
+          threadID: block.threadID, turnID: block.turnID, itemID: block.itemID,
+          threadTitle: main.threadTitle, kind: .history, text: block.text, blockID: block.id))
+      accepted = accepted || result == .started || result == .queued
+    }
+    return accepted
+  }
+
+  @discardableResult
+  public func navigateBlockInResponse(forward: Bool) -> Bool {
+    guard audio.settings.isEnabled, !audio.settings.isMuted,
+      let main = mainConversation,
+      let block = history.navigateBlockInResponse(
+        threadID: main.threadID, forward: forward, liveBlockID: currentMainBlockID)
+    else { return false }
+    _ = interrupt()
+    let id = UUID().uuidString
+    let result = audio.enqueue(
+      VoiceAudioUnit(
+        id: "history-block|\(id)", groupID: "history-block|\(id)",
+        threadID: block.threadID, turnID: block.turnID, itemID: block.itemID,
+        threadTitle: main.threadTitle, kind: .history, text: block.text, blockID: block.id))
+    return result == .started || result == .queued
+  }
+
+  @discardableResult
   public func interrupt() -> Bool {
     let hadNotifications = pendingNotificationCount > 0
     clearNotifications()
@@ -207,6 +245,9 @@ public final class VoiceReadingSession {
     switch event {
     case .unitStarted(let unit):
       activeUnit = unit
+      if let blockID = unit.blockID {
+        history.selectBlock(threadID: unit.threadID, blockID: blockID)
+      }
       if unit.kind != .notification { lastForegroundActivity = now() }
     case .unitFinished:
       if activeUnit?.kind == .notification {

@@ -30,10 +30,16 @@ Une réponse authentifiée contient uniquement :
 - présence d'une lecture et nombre d'unités en file ;
 - identifiants et titre de la tâche actuellement lue ;
 - type de lecture ;
-- nombre de réponses parallèles en attente.
-- catalogue des voix françaises installées, sans aucune donnée de transcript.
+- nombre de réponses parallèles en attente ;
+- conversations récentes, position de navigation et aperçu limité aux huit
+  premiers mots de la réponse historique sélectionnée ;
+- catalogue des voix françaises installées.
 
-Le texte lu n'est jamais envoyé au contrôleur. Le contenu du dictionnaire est transmis uniquement en réponse à une commande explicite et authentifiée d'ouverture ou d'enregistrement. Une connexion non authentifiée ne reçoit ni état ni dictionnaire, même lorsqu'elle emploie une requête JSON valide.
+Une réponse complète n'est jamais envoyée au contrôleur. Le court aperçu sert
+uniquement à reconnaître la réponse dans la popover. Le contenu du dictionnaire
+est transmis uniquement en réponse à une commande explicite et authentifiée
+d'ouverture ou d'enregistrement. Une connexion non authentifiée ne reçoit ni
+état ni dictionnaire, même lorsqu'elle emploie une requête JSON valide.
 
 ## Jeton local
 
@@ -89,7 +95,10 @@ Par sécurité, le client refuse une URL `ws://` qui ne vise pas `localhost`. Un
 
 ## Validation
 
-La suite compte 53 tests. Elle vérifie notamment l'authentification, l'absence de texte dans l'état, la mutation des réglages, l'interruption de toute la file, la déduplication des séquences, les permissions privées du jeton, le parseur `.env` et la construction restrictive de la commande SSH.
+La suite vérifie notamment l'authentification, le bornage de l'aperçu historique,
+la mutation des réglages, l'interruption de toute la file, la déduplication des
+séquences, les permissions privées du jeton, le parseur `.env` et la construction
+restrictive de la commande SSH.
 
 Le vrai serveur Network.framework et le vrai client URLSession ont également été exécutés ensemble sur `127.0.0.1` :
 

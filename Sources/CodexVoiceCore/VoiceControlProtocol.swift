@@ -21,6 +21,10 @@ public enum VoiceControlCommandKind: String, Codable, Sendable {
   case selectConversation
   case previousBlock
   case nextBlock
+  case previousResponse
+  case nextResponse
+  case previousBlockInResponse
+  case nextBlockInResponse
 }
 
 public struct VoiceControlCommand: Codable, Equatable, Sendable {
@@ -45,6 +49,10 @@ public struct VoiceControlCommand: Codable, Equatable, Sendable {
   public static let interruptAudio = VoiceControlCommand(kind: .interruptAudio)
   public static let previousBlock = VoiceControlCommand(kind: .previousBlock)
   public static let nextBlock = VoiceControlCommand(kind: .nextBlock)
+  public static let previousResponse = VoiceControlCommand(kind: .previousResponse)
+  public static let nextResponse = VoiceControlCommand(kind: .nextResponse)
+  public static let previousBlockInResponse = VoiceControlCommand(kind: .previousBlockInResponse)
+  public static let nextBlockInResponse = VoiceControlCommand(kind: .nextBlockInResponse)
 
   public static func selectConversation(_ threadID: String) -> VoiceControlCommand {
     VoiceControlCommand(kind: .selectConversation, stringValue: threadID)

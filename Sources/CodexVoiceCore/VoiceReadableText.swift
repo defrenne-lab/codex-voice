@@ -4,46 +4,11 @@ import Foundation
 /// It never sends conversation content to an external service.
 public enum VoiceReadableText {
   public static func blocks(_ rawText: String) -> [String] {
-    let text = String(rawText.prefix(65_536)).replacingOccurrences(of: "\r\n", with: "\n")
-    var result: [String] = []
-    var paragraph: [String] = []
-    var fence: Character?
-    var inTable = false
-    func flush() {
-      let block = clean(paragraph.joined(separator: " "))
-      if !block.isEmpty { result.append(block) }
-      paragraph.removeAll(keepingCapacity: true)
-    }
-    for line in text.components(separatedBy: "\n") {
-      let trimmed = line.trimmingCharacters(in: .whitespaces)
-      if trimmed.hasPrefix("```") || trimmed.hasPrefix("~~~") {
-        flush()
-        if fence == nil {
-          fence = trimmed.first
-          result.append("Bloc de code disponible à l’écran.")
-        } else if fence == trimmed.first {
-          fence = nil
-        }
-        continue
-      }
-      guard fence == nil else { continue }
-      if trimmed.hasPrefix("|") && trimmed.dropFirst().contains("|") {
-        flush()
-        if !inTable { result.append("Tableau disponible à l’écran.") }
-        inTable = true
-        continue
-      }
-      inTable = false
-      if trimmed.isEmpty { flush() } else { paragraph.append(trimmed) }
-    }
-    flush()
-    return Array(result.prefix(128))
+    parsedBlocks(rawText).map(\.text)
   }
 
   public static func notificationSummary(_ text: String) -> String {
-    let candidates = blocks(text).filter {
-      $0 != "Bloc de code disponible à l’écran." && $0 != "Tableau disponible à l’écran."
-    }
+    let candidates = parsedBlocks(text).filter { $0.kind == .prose }.map(\.text)
     // Extract, do not invent a completion/result that the assistant did not say.
     let source =
       candidates.first(where: { $0.split(whereSeparator: \.isWhitespace).count >= 3 })
@@ -68,6 +33,52 @@ public enum VoiceReadableText {
     return result.isEmpty ? "Conversation Codex" : String(result.prefix(80))
   }
 
+  private enum BlockKind { case prose, technical }
+
+  private struct ParsedBlock {
+    let text: String
+    let kind: BlockKind
+  }
+
+  private static func parsedBlocks(_ rawText: String) -> [ParsedBlock] {
+    let text = String(rawText.prefix(65_536)).replacingOccurrences(of: "\r\n", with: "\n")
+    var result: [ParsedBlock] = []
+    var paragraph: [String] = []
+    var fence: Character?
+    func flush() {
+      let block = clean(paragraph.joined(separator: " "))
+      if !block.isEmpty { result.append(ParsedBlock(text: block, kind: .prose)) }
+      paragraph.removeAll(keepingCapacity: true)
+    }
+    for line in text.components(separatedBy: "\n") {
+      let trimmed = line.trimmingCharacters(in: .whitespaces)
+      if trimmed.hasPrefix("```") || trimmed.hasPrefix("~~~") {
+        flush()
+        if fence == nil {
+          fence = trimmed.first
+        } else if fence == trimmed.first {
+          fence = nil
+        }
+        continue
+      }
+      if fence != nil {
+        let codeLine = clean(trimmed)
+        if !codeLine.isEmpty { result.append(ParsedBlock(text: codeLine, kind: .technical)) }
+        continue
+      }
+      if let cells = tableCells(from: trimmed) {
+        flush()
+        if !cells.allSatisfy(isTableSeparator) {
+          result.append(ParsedBlock(text: cells.joined(separator: " : "), kind: .technical))
+        }
+        continue
+      }
+      if trimmed.isEmpty { flush() } else { paragraph.append(trimmed) }
+    }
+    flush()
+    return Array(result.prefix(128))
+  }
+
   private static func clean(_ text: String) -> String {
     text
       .replacingOccurrences(
@@ -81,5 +92,22 @@ public enum VoiceReadableText {
       .replacingOccurrences(of: "`", with: "")
       .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
       .trimmingCharacters(in: .whitespacesAndNewlines)
+  }
+
+  private static func tableCells(from line: String) -> [String]? {
+    guard line.contains("|") else { return nil }
+    var cells = line.split(separator: "|", omittingEmptySubsequences: false).map {
+      clean(String($0))
+    }
+    if line.hasPrefix("|") { cells.removeFirst() }
+    if line.hasSuffix("|") { cells.removeLast() }
+    guard cells.count >= 2, cells.contains(where: { !$0.isEmpty }) else { return nil }
+    return cells
+  }
+
+  private static func isTableSeparator(_ cell: String) -> Bool {
+    let normalized = cell.replacingOccurrences(of: ":", with: "")
+      .trimmingCharacters(in: .whitespaces)
+    return normalized.count >= 3 && normalized.allSatisfy { $0 == "-" }
   }
 }

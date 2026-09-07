@@ -24,6 +24,11 @@ final class VoiceHistoryControlsTests: XCTestCase {
     XCTAssertEqual(model.historyState, history)
     XCTAssertTrue(model.canGoPrevious)
     XCTAssertTrue(model.canGoNext)
+    XCTAssertTrue(model.supportsResponseNavigation)
+    XCTAssertEqual(
+      model.responseNavigationLabel,
+      "3 / 5 · Les traitements sont terminés…")
+    XCTAssertEqual(model.blockInResponseNavigationLabel, "2 / 4")
     XCTAssertEqual(dismissalCount, 0)
   }
 

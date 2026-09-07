@@ -131,37 +131,90 @@ struct VoiceRemotePopoverView: View {
         .disabled(!model.controlsEnabled || model.conversations.isEmpty)
         .accessibilityLabel("Conversation principale")
         .help("Choisir la tâche qui a la parole, sans lui envoyer de message.")
-        HStack(spacing: 12) {
-          Button(action: { model.navigateHistory(forward: false) }) {
-            Image(systemName: "arrow.left").frame(width: 22, height: 20)
+        if model.supportsResponseNavigation {
+          HStack(spacing: 8) {
+            Text("Réponse").frame(width: 49, alignment: .leading)
+            Button(action: { model.navigateResponse(forward: false) }) {
+              Image(systemName: "arrow.left").frame(width: 20, height: 20)
+            }
+            .disabled(!model.canGoPreviousResponse)
+            .help("Réécouter la réponse précédente depuis son début")
+            .accessibilityLabel("Réponse précédente")
+            Button(action: { model.navigateResponse(forward: true) }) {
+              Image(systemName: "arrow.right").frame(width: 20, height: 20)
+            }
+            .disabled(!model.canGoNextResponse)
+            .help("Réécouter la réponse suivante depuis son début")
+            .accessibilityLabel("Réponse suivante")
+            Text(model.responseNavigationLabel)
+              .lineLimit(1)
+              .truncationMode(.tail)
+              .foregroundStyle(.secondary)
           }
-          .disabled(!model.canGoPrevious)
-          .help("Réécouter le bloc précédent")
-          .accessibilityLabel("Bloc précédent")
-          Button(action: { model.navigateHistory(forward: true) }) {
-            Image(systemName: "arrow.right").frame(width: 22, height: 20)
+          .buttonStyle(.borderless)
+          .font(.system(size: 10, weight: .medium))
+          .monospacedDigit()
+
+          HStack(spacing: 8) {
+            Text("Bloc").frame(width: 49, alignment: .leading)
+            Button(action: { model.navigateBlockInResponse(forward: false) }) {
+              Image(systemName: "arrow.left").frame(width: 20, height: 20)
+            }
+            .disabled(!model.canGoPreviousBlockInResponse)
+            .help("Réécouter le bloc précédent de cette réponse")
+            .accessibilityLabel("Bloc précédent dans la réponse")
+            Button(action: { model.navigateBlockInResponse(forward: true) }) {
+              Image(systemName: "arrow.right").frame(width: 20, height: 20)
+            }
+            .disabled(!model.canGoNextBlockInResponse)
+            .help("Réécouter le bloc suivant de cette réponse")
+            .accessibilityLabel("Bloc suivant dans la réponse")
+            Button(action: model.interruptAudio) {
+              Image(systemName: "stop.fill").frame(width: 20, height: 20)
+            }
+            .disabled(!model.canStop)
+            .help("Arrêter la lecture sans fermer cette fenêtre")
+            .accessibilityLabel("Arrêter la relecture")
+            Text(model.blockInResponseNavigationLabel)
+              .lineLimit(1)
+              .foregroundStyle(.secondary)
           }
-          .disabled(!model.canGoNext)
-          .help("Réécouter le bloc suivant")
-          .accessibilityLabel("Bloc suivant")
-          Button(action: model.interruptAudio) {
-            Image(systemName: "stop.fill").frame(width: 22, height: 20)
+          .buttonStyle(.borderless)
+          .font(.system(size: 10, weight: .medium))
+          .monospacedDigit()
+        } else {
+          HStack(spacing: 12) {
+            Button(action: { model.navigateHistory(forward: false) }) {
+              Image(systemName: "arrow.left").frame(width: 22, height: 20)
+            }
+            .disabled(!model.canGoPrevious)
+            .help("Réécouter le bloc précédent")
+            .accessibilityLabel("Bloc précédent")
+            Button(action: { model.navigateHistory(forward: true) }) {
+              Image(systemName: "arrow.right").frame(width: 22, height: 20)
+            }
+            .disabled(!model.canGoNext)
+            .help("Réécouter le bloc suivant")
+            .accessibilityLabel("Bloc suivant")
+            Button(action: model.interruptAudio) {
+              Image(systemName: "stop.fill").frame(width: 22, height: 20)
+            }
+            .disabled(!model.canStop)
+            .help("Arrêter la lecture sans fermer cette fenêtre")
+            .accessibilityLabel("Arrêter la relecture")
+            if let history = model.historyState, history.blockCount > 0 {
+              Text(
+                history.selectedBlock.map { "\($0) / \(history.blockCount)" }
+                  ?? "\(history.blockCount) blocs"
+              )
+              .font(.system(size: 10))
+              .foregroundStyle(.secondary)
+              .monospacedDigit()
+            }
           }
-          .disabled(!model.canStop)
-          .help("Arrêter la lecture sans fermer cette fenêtre")
-          .accessibilityLabel("Arrêter la relecture")
-          if let history = model.historyState, history.blockCount > 0 {
-            Text(
-              history.selectedBlock.map { "\($0) / \(history.blockCount)" }
-                ?? "\(history.blockCount) blocs"
-            )
-            .font(.system(size: 10))
-            .foregroundStyle(.secondary)
-            .monospacedDigit()
-          }
+          .buttonStyle(.borderless)
+          .font(.system(size: 12, weight: .semibold))
         }
-        .buttonStyle(.borderless)
-        .font(.system(size: 12, weight: .semibold))
       }
       Spacer(minLength: 0)
     }
