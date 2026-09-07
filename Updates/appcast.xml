@@ -9,6 +9,45 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
         <description>Mises à jour de l’application macOS Codex Voice 3.</description>
         <language>fr</language>
         <item>
+            <title>0.3.0</title>
+            <pubDate>Mon, 07 Sep 2026 10:19:52 +0200</pubDate>
+            <sparkle:version>13</sparkle:version>
+            <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="plain-text"><![CDATA[# Codex Voice 3 v0.3.0
+
+Cette version rend les réponses techniques plus compréhensibles à l’oral et
+facilite le retour au bon endroit dans une conversation longue.
+
+## Lecture structurée
+
+- Les blocs de code et de texte brut sont désormais lus ligne par ligne, au
+  lieu d’être entièrement sautés.
+- Les tableaux Markdown sont lus ligne par ligne, avec une séparation audible
+  entre les cellules ; leur ligne de mise en forme est ignorée.
+- Les notifications des conversations annexes restent courtes et ne choisissent
+  jamais une ligne de code ou de tableau comme résumé.
+
+## Historique à deux niveaux
+
+- Une première ligne de flèches navigue parmi les cinq dernières réponses de
+  la conversation et relit la réponse choisie depuis son début.
+- Une seconde ligne navigue bloc par bloc à l’intérieur de cette réponse.
+- Un aperçu court permet d’identifier la réponse sélectionnée. Il reste local,
+  borné aux huit premiers mots et n’est envoyé qu’au contrôleur authentifié.
+- Le bouton Stop coupe toujours la réécoute sans fermer la popover ni perdre la
+  sélection.
+
+Le service du Mac mini et le contrôleur du MacBook doivent tous deux passer à
+cette version. Le service est déployé séparément ; sur le MacBook, utilisez
+**Rechercher une mise à jour** dans Codex Voice 3. Les réglages, la voix, le
+volume, le dictionnaire, le jeton de contrôle et la configuration SSH sont
+conservés.
+]]></description>
+            <enclosure url="https://github.com/defrenne-lab/codex-voice/releases/download/v0.3.0/Codex-Voice-3-v0.3.0-macOS.dmg" length="2941922" type="application/octet-stream" sparkle:edSignature="boLHxA4CJ7C9ADXuUI1I0xW8YsKqnNEef30JvlVyPHhAs8+FQnMlvQJxeXex03ygxndyQvXL6WEQB+0c6fFRDw=="/>
+        </item>
+        <item>
             <title>0.2.1</title>
             <pubDate>Sat, 05 Sep 2026 12:47:09 +0200</pubDate>
             <sparkle:version>12</sparkle:version>
@@ -100,6 +139,6 @@ et de transparence sur le MacBook est à effectuer après installation.
     </channel>
 </rss>
 <!-- sparkle-signatures:
-edSignature: pFIjcCKn28RT1T/P6/Zrkw+uDjmRWmxjyppgN8Jtn2FxdVqm1scVMhigWj49lss3jOwzLjSDPMOd791CUZswBw==
-length: 6074
+edSignature: SZkuMs4wE4sVuKVnATO5RZM2WCUerBQWwfDZVUmCWm/n46ffCS+7qdqhXiRHan3yxrBDSD7n6BGMRxaQzF1SBw==
+length: 8297
 -->
