@@ -188,17 +188,18 @@ excerpt, not an AI rewrite, and sends no text to an external provider.
 
 The transcript reader consumes bounded chunks in a single forward scan and
 only bootstraps a bounded tail when an old journal returns. Historical context
-never selects a task or starts speech. Current development sources preserve
-fenced text and code line by line and read Markdown tables row by row, while
+never selects a task or starts speech. Version 0.3 preserves
+fenced text and code line by line and reads Markdown tables row by row, while
 parallel summaries still exclude technical content. Response navigation starts
 at the beginning of the selected answer; block navigation then remains inside
 that answer. The menu adds a larger speaker badge and a native translucent
 backdrop, with an opaque accessibility fallback.
 
-This batch requires both the Mac mini service and MacBook controller to be
+This version requires both the Mac mini service and MacBook controller to be
 updated; Sparkle only updates the controller. Older peers retain existing
 controls but cannot expose the new selector/history commands. See
-[BATCH-VALIDATION.md](BATCH-VALIDATION.md) before deploying.
+[RELEASE-VALIDATION-0.3.0.md](RELEASE-VALIDATION-0.3.0.md) for the complete
+release trace.
 
 ## Pronunciation dictionary and GitHub
 

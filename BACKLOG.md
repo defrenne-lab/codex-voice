@@ -2,9 +2,10 @@
 
 ## Lot v0.3.0 — lecture structurée et historique à deux niveaux
 
-Préparé le 7 septembre 2026 en version 0.3.0/build 13. Ce lot met à jour
-ensemble le service du Mac mini et le contrôleur du MacBook ; le suivi de sa
-publication et de sa recette est consigné dans RELEASE-VALIDATION-0.3.0.md.
+Livré le 7 septembre 2026 en version 0.3.0/build 13. Le service est installé
+sur le Mac mini et le contrôleur est publié via la mise à jour intégrée ; la
+recette finale sur le MacBook reste à confirmer. Le suivi complet est consigné
+dans RELEASE-VALIDATION-0.3.0.md.
 
 - Les blocs encadrés conservent leur contenu dans l’ordre, une ligne par bloc,
   au lieu de la seule annonce « Bloc de code disponible à l’écran ».
